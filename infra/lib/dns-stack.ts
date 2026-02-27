@@ -1,4 +1,4 @@
-import { Stack, CfnOutput, type StackProps } from 'aws-cdk-lib'
+import { Stack, Fn, CfnOutput, type StackProps } from 'aws-cdk-lib'
 import * as route53 from 'aws-cdk-lib/aws-route53'
 import type { Construct } from 'constructs'
 
@@ -17,7 +17,7 @@ export class DnsStack extends Stack {
     })
 
     new CfnOutput(this, 'NameServers', {
-      value: (this.hostedZone as route53.PublicHostedZone).hostedZoneNameServers?.join(', ') ?? '',
+      value: Fn.join(', ', (this.hostedZone as route53.PublicHostedZone).hostedZoneNameServers ?? []),
       description:
         'MANUAL STEP: copy these into parent account domain registration ' +
         `(Route53 > Registered Domains > ${props.domainName} > Edit name servers)`,
