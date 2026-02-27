@@ -1,0 +1,46 @@
+name: Deploy Infra
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - infra/**
+
+concurrency:
+  group: cdk-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: CDK Deploy All
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck all packages
+        run: pnpm -r typecheck
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: CDK deploy all stacks
+        run: pnpm --filter infra exec -- cdk deploy --all --require-approval never -c prodAccount=${{ secrets.AWS_ACCOUNT_ID }}

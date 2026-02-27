@@ -1,0 +1,10 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/infra.ts",
+  "context": {
+    "prodAccount": "REPLACE_WITH_PROD_ACCOUNT_ID",
+    "prodRegion": "us-east-1",
+    "domainName": "sirrealtor.com",
+    "certRegion": "us-east-1",
+    "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true
+  }
+}

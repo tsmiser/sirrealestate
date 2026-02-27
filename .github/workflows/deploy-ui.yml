@@ -1,0 +1,64 @@
+name: Deploy UI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ui/**
+
+concurrency:
+  group: ui-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and Sync to S3
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build UI
+        run: pnpm --filter ui build
+        env:
+          VITE_COGNITO_USER_POOL_ID: ${{ secrets.VITE_COGNITO_USER_POOL_ID }}
+          VITE_COGNITO_USER_POOL_CLIENT_ID: ${{ secrets.VITE_COGNITO_USER_POOL_CLIENT_ID }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Read CloudFormation outputs
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks --stack-name SirRealtor-Ui \
+            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
+            --output text)
+          CF_ID=$(aws cloudformation describe-stacks --stack-name SirRealtor-Ui \
+            --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" \
+            --output text)
+          echo "BUCKET=$BUCKET" >> "$GITHUB_ENV"
+          echo "CF_ID=$CF_ID" >> "$GITHUB_ENV"
+
+      - name: Sync to S3
+        run: aws s3 sync ui/dist/ s3://$BUCKET --delete
+
+      - name: Invalidate CloudFront cache
+        run: aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"

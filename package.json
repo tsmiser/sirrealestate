@@ -1,0 +1,16 @@
+{
+  "name": "sirrealestate",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "node": ">=20.0.0", "pnpm": ">=9.0.0" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "ui:dev": "pnpm --filter ui dev",
+    "infra:synth": "pnpm --filter infra synth",
+    "infra:deploy": "pnpm --filter infra deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

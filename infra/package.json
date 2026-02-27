@@ -1,0 +1,31 @@
+{
+  "name": "infra",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "deploy:dns": "cdk deploy SirRealtor-Dns",
+    "deploy:cert": "cdk deploy SirRealtor-Cert",
+    "deploy:ui": "cdk deploy SirRealtor-Ui",
+    "deploy:auth": "cdk deploy SirRealtor-Auth",
+    "deploy:api": "cdk deploy SirRealtor-Api",
+    "deploy:chat": "cdk deploy SirRealtor-Chat",
+    "deploy": "cdk deploy --all",
+    "synth": "cdk synth",
+    "diff": "cdk diff"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-apigatewayv2-authorizers": "^2.177.0",
+    "@aws-cdk/aws-apigatewayv2-integrations": "^2.177.0",
+    "aws-cdk-lib": "^2.177.0",
+    "constructs": "^10.4.2",
+    "source-map-support": "^0.5.21"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.177.0",
+    "esbuild": "^0.24.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
+  }
+}
