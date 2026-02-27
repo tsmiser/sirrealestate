@@ -3,7 +3,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito'
 import type { Construct } from 'constructs'
 
 interface AuthStackProps extends StackProps {
-  domainName: string
+  appDomain: string
 }
 
 export class AuthStack extends Stack {
@@ -35,11 +35,11 @@ export class AuthStack extends Stack {
       },
       oAuth: {
         callbackUrls: [
-          `https://${props.domainName}`,
+          `https://${props.appDomain}`,
           'http://localhost:5173',
         ],
         logoutUrls: [
-          `https://${props.domainName}`,
+          `https://${props.appDomain}`,
           'http://localhost:5173',
         ],
       },

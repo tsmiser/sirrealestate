@@ -4,21 +4,35 @@ export interface SirRealtorConfig {
   prodAccount: string
   prodRegion: string
   certRegion: string
-  domainName: string
+  baseDomain: string   // sirrealtor.com
+  appDomain: string    // app.sirrealtor.com  (app-<env>.sirrealtor.com for lower envs)
+  apiDomain: string    // api.sirrealtor.com  (api-<env>.sirrealtor.com for lower envs)
 }
 
 export function getConfig(app: App): SirRealtorConfig {
   const prodAccount = app.node.tryGetContext('prodAccount') as string | undefined
   const prodRegion = app.node.tryGetContext('prodRegion') as string | undefined
   const certRegion = app.node.tryGetContext('certRegion') as string | undefined
-  const domainName = app.node.tryGetContext('domainName') as string | undefined
+  const baseDomain = app.node.tryGetContext('domainName') as string | undefined
+  // Optional: set to 'staging', 'dev', etc. for lower environments.
+  // Omit (or leave empty) for production.
+  const envName = app.node.tryGetContext('envName') as string | undefined
 
   if (!prodAccount || prodAccount === 'REPLACE_WITH_PROD_ACCOUNT_ID') {
     throw new Error('cdk.json: "prodAccount" must be set to your AWS account ID')
   }
   if (!prodRegion) throw new Error('cdk.json: "prodRegion" is required')
   if (!certRegion) throw new Error('cdk.json: "certRegion" is required')
-  if (!domainName) throw new Error('cdk.json: "domainName" is required')
+  if (!baseDomain) throw new Error('cdk.json: "domainName" is required')
 
-  return { prodAccount, prodRegion, certRegion, domainName }
+  const envSuffix = envName ? `-${envName}` : ''
+
+  return {
+    prodAccount,
+    prodRegion,
+    certRegion,
+    baseDomain,
+    appDomain: `app${envSuffix}.${baseDomain}`,
+    apiDomain: `api${envSuffix}.${baseDomain}`,
+  }
 }

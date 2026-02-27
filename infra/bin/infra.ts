@@ -17,48 +17,52 @@ const certEnv = { account: config.prodAccount, region: config.certRegion }
 
 const dnsStack = new DnsStack(app, 'SirRealtor-Dns', {
   env: prodEnv,
-  domainName: config.domainName,
+  appDomain: config.appDomain,
+  apiDomain: config.apiDomain,
   crossRegionReferences: true,
 })
 
 // CertStack must deploy to us-east-1 — required by CloudFront.
+// DNS delegation for both subdomains must exist before deploying.
 const certStack = new CertStack(app, 'SirRealtor-Cert', {
   env: certEnv,
-  domainName: config.domainName,
-  hostedZone: dnsStack.hostedZone,
+  appDomain: config.appDomain,
+  apiDomain: config.apiDomain,
+  appHostedZone: dnsStack.appHostedZone,
+  apiHostedZone: dnsStack.apiHostedZone,
   crossRegionReferences: true,
 })
 certStack.addDependency(dnsStack)
 
 const uiStack = new UiStack(app, 'SirRealtor-Ui', {
   env: prodEnv,
-  domainName: config.domainName,
-  certificate: certStack.certificate,
-  hostedZone: dnsStack.hostedZone,
+  appDomain: config.appDomain,
+  certificate: certStack.appCertificate,
+  hostedZone: dnsStack.appHostedZone,
 })
 uiStack.addDependency(certStack)
 
 const authStack = new AuthStack(app, 'SirRealtor-Auth', {
   env: prodEnv,
-  domainName: config.domainName,
+  appDomain: config.appDomain,
 })
+authStack.addDependency(dnsStack)
 
 const apiStack = new ApiStack(app, 'SirRealtor-Api', {
   env: prodEnv,
-  domainName: config.domainName,
+  appDomain: config.appDomain,
+  apiDomain: config.apiDomain,
+  certificate: certStack.apiCertificate,
+  hostedZone: dnsStack.apiHostedZone,
 })
-
-// Auth and API are independent — no mutual dependency.
-// Both depend on DNS being up so CORS/callback URLs resolve.
-authStack.addDependency(dnsStack)
-apiStack.addDependency(dnsStack)
+apiStack.addDependency(certStack)
 
 const chatServiceStack = new ChatServiceStack(app, 'SirRealtor-Chat', {
   env: prodEnv,
   httpApi: apiStack.httpApi,
   userPool: authStack.userPool,
   userPoolClient: authStack.userPoolClient,
-  domainName: config.domainName,
+  domainName: config.appDomain,
 })
 chatServiceStack.addDependency(apiStack)
 chatServiceStack.addDependency(authStack)

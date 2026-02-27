@@ -4,27 +4,41 @@ import type { IPublicHostedZone } from 'aws-cdk-lib/aws-route53'
 import type { Construct } from 'constructs'
 
 interface CertStackProps extends StackProps {
-  domainName: string
-  hostedZone: IPublicHostedZone
+  appDomain: string
+  apiDomain: string
+  appHostedZone: IPublicHostedZone
+  apiHostedZone: IPublicHostedZone
 }
 
 export class CertStack extends Stack {
-  readonly certificate: acm.ICertificate
+  readonly appCertificate: acm.ICertificate
+  readonly apiCertificate: acm.ICertificate
 
   constructor(scope: Construct, id: string, props: CertStackProps) {
     // crossRegionReferences required: this stack deploys to us-east-1
     // while other stacks may target a different primary region.
     super(scope, id, { ...props, crossRegionReferences: true })
 
-    this.certificate = new acm.Certificate(this, 'Certificate', {
-      domainName: props.domainName,
-      subjectAlternativeNames: [`www.${props.domainName}`],
-      validation: acm.CertificateValidation.fromDns(props.hostedZone),
+    // CloudFront requires ACM certs in us-east-1.
+    this.appCertificate = new acm.Certificate(this, 'AppCertificate', {
+      domainName: props.appDomain,
+      validation: acm.CertificateValidation.fromDns(props.appHostedZone),
     })
 
-    new CfnOutput(this, 'CertificateArn', {
-      value: this.certificate.certificateArn,
-      description: 'ACM certificate ARN (us-east-1) for CloudFront',
+    // API Gateway HTTP API uses a regional cert (same region as the API).
+    this.apiCertificate = new acm.Certificate(this, 'ApiCertificate', {
+      domainName: props.apiDomain,
+      validation: acm.CertificateValidation.fromDns(props.apiHostedZone),
+    })
+
+    new CfnOutput(this, 'AppCertificateArn', {
+      value: this.appCertificate.certificateArn,
+      description: 'ACM certificate ARN for CloudFront (us-east-1)',
+    })
+
+    new CfnOutput(this, 'ApiCertificateArn', {
+      value: this.apiCertificate.certificateArn,
+      description: 'ACM certificate ARN for API Gateway custom domain',
     })
   }
 }

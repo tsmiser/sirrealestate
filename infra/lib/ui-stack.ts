@@ -9,7 +9,7 @@ import type { IPublicHostedZone } from 'aws-cdk-lib/aws-route53'
 import type { Construct } from 'constructs'
 
 interface UiStackProps extends StackProps {
-  domainName: string
+  appDomain: string
   certificate: ICertificate
   hostedZone: IPublicHostedZone
 }
@@ -33,7 +33,7 @@ export class UiStack extends Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       },
-      domainNames: [props.domainName, `www.${props.domainName}`],
+      domainNames: [props.appDomain],
       certificate: props.certificate,
       defaultRootObject: 'index.html',
       // SPA routing: S3 returns 403 (not 404) for missing keys on private buckets.
@@ -54,17 +54,7 @@ export class UiStack extends Stack {
       ],
     })
 
-    // Apex record
-    new route53.ARecord(this, 'ApexRecord', {
-      zone: props.hostedZone,
-      target: route53.RecordTarget.fromAlias(
-        new route53Targets.CloudFrontTarget(this.distribution),
-      ),
-    })
-
-    // www record
-    new route53.ARecord(this, 'WwwRecord', {
-      recordName: 'www',
+    new route53.ARecord(this, 'AppRecord', {
       zone: props.hostedZone,
       target: route53.RecordTarget.fromAlias(
         new route53Targets.CloudFrontTarget(this.distribution),
@@ -82,7 +72,7 @@ export class UiStack extends Stack {
     })
 
     new CfnOutput(this, 'SiteUrl', {
-      value: `https://${props.domainName}`,
+      value: `https://${props.appDomain}`,
     })
   }
 }
