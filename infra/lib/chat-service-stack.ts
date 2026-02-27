@@ -62,9 +62,12 @@ export class ChatServiceStack extends Stack {
 
     const chatIntegration = new HttpLambdaIntegration('ChatIntegration', chatLambda)
 
-    props.httpApi.addRoutes({
-      path: '/chat',
-      methods: [apigwv2.HttpMethod.POST],
+    // Create the route as a child of this stack (not of props.httpApi) to avoid
+    // a cyclic cross-stack reference: ApiStack would otherwise reference
+    // ChatLambda.Arn while ChatStack already depends on ApiStack.
+    new apigwv2.HttpRoute(this, 'ChatRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/chat', apigwv2.HttpMethod.POST),
       // Cast required: alpha package types diverge from aws-cdk-lib's private
       // property declarations at newer versions. Runtime behaviour is correct.
       integration: chatIntegration as unknown as apigwv2.HttpRouteIntegration,
