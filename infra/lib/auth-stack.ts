@@ -45,6 +45,7 @@ export class AuthStack extends Stack {
       },
     })
 
+
     new CfnOutput(this, 'UserPoolId', {
       value: this.userPool.userPoolId,
       description: 'VITE_COGNITO_USER_POOL_ID',
