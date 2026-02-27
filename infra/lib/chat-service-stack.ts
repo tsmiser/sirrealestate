@@ -65,8 +65,10 @@ export class ChatServiceStack extends Stack {
     props.httpApi.addRoutes({
       path: '/chat',
       methods: [apigwv2.HttpMethod.POST],
-      integration: chatIntegration,
-      authorizer: cognitoAuthorizer,
+      // Cast required: alpha package types diverge from aws-cdk-lib's private
+      // property declarations at newer versions. Runtime behaviour is correct.
+      integration: chatIntegration as unknown as apigwv2.HttpRouteIntegration,
+      authorizer: cognitoAuthorizer as unknown as apigwv2.IHttpRouteAuthorizer,
     })
 
     new CfnOutput(this, 'BedrockModelId', {
