@@ -4,8 +4,8 @@ import * as iam from 'aws-cdk-lib/aws-iam'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2'
-import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
-import { HttpJwtAuthorizer } from '@aws-cdk/aws-apigatewayv2-authorizers-alpha'
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'
+import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import type { Construct } from 'constructs'
 
@@ -68,10 +68,8 @@ export class ChatServiceStack extends Stack {
     new apigwv2.HttpRoute(this, 'ChatRoute', {
       httpApi: props.httpApi,
       routeKey: apigwv2.HttpRouteKey.with('/chat', apigwv2.HttpMethod.POST),
-      // Cast required: alpha package types diverge from aws-cdk-lib's private
-      // property declarations at newer versions. Runtime behaviour is correct.
-      integration: chatIntegration as unknown as apigwv2.HttpRouteIntegration,
-      authorizer: cognitoAuthorizer as unknown as apigwv2.IHttpRouteAuthorizer,
+      integration: chatIntegration,
+      authorizer: cognitoAuthorizer,
     })
 
     new CfnOutput(this, 'BedrockModelId', {
