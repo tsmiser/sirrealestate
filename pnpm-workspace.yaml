@@ -1,4 +1,7 @@
 packages:
-  - 'ui'
-  - 'infra'
-  - 'chat-service'
+  - ui
+  - infra
+  - chat-service
+
+onlyBuiltDependencies:
+  - esbuild
