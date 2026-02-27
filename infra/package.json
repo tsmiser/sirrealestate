@@ -16,8 +16,8 @@
     "diff": "cdk diff"
   },
   "dependencies": {
-    "@aws-cdk/aws-apigatewayv2-authorizers": "^2.177.0",
-    "@aws-cdk/aws-apigatewayv2-integrations": "^2.177.0",
+    "@aws-cdk/aws-apigatewayv2-authorizers-alpha": "2.114.1-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "2.114.1-alpha.0",
     "aws-cdk-lib": "^2.177.0",
     "constructs": "^10.4.2",
     "source-map-support": "^0.5.21"
