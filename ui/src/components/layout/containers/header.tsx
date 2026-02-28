@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar, Box, Button, Menu, MenuItem, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
-import Logo from '@/components/logo/logo'
+import knightLogo from '@/assets/knight.png'
 import NiMenuSplit from '@/icons/nexture/ni-menu-split'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -31,7 +31,7 @@ export default function Header() {
         {/* Logo */}
         <Box className="flex flex-1 items-center">
           <Link to="/chat">
-            <Logo />
+            <img src={knightLogo} alt="SirRealtor" className="h-14 w-auto" />
           </Link>
         </Box>
 
