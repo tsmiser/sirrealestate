@@ -1,16 +1,30 @@
-export interface ChatMessage {
-  id: string
+export interface ContentBlock {
+  text?: string
+  toolUse?: {
+    toolUseId: string
+    name: string
+    input: unknown
+  }
+  toolResult?: {
+    toolUseId: string
+    content: Array<{ text: string }>
+    status?: 'success' | 'error'
+  }
+}
+
+export interface ConversationMessage {
   role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
+  content: ContentBlock[]
 }
 
 export interface ChatRequest {
-  message: string
+  messages: ConversationMessage[]
   sessionId?: string
 }
 
 export interface ChatResponse {
   reply: string
   sessionId: string
+  messages: ConversationMessage[]
+  hasToolUse: boolean
 }

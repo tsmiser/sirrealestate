@@ -1,0 +1,126 @@
+// Shared domain types used by chat handler, tools, search worker, and data handler.
+
+export interface SearchCriteria {
+  minPrice?: number
+  maxPrice?: number
+  bedrooms?: number
+  bathrooms?: number
+  propertyType?: string
+  city?: string
+  state?: string
+  zipCodes?: string[]
+}
+
+export interface NotificationPreferences {
+  email: boolean
+  sms: false
+  push: false
+}
+
+export interface SearchProfile {
+  profileId: string
+  name: string
+  isDefault: boolean
+  criteria: SearchCriteria
+  monitoring: boolean
+  notificationPreferences: NotificationPreferences
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UserProfile {
+  userId: string
+  email: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  searchProfiles: SearchProfile[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Listing {
+  listingId: string
+  address: string
+  price: number
+  bedrooms: number
+  bathrooms: number
+  sqft?: number
+  agentEmail?: string
+  agentName?: string
+  listingUrl?: string
+  rawData: unknown
+}
+
+export interface SearchResult {
+  userId: string
+  profileIdListingId: string  // SK: profileId#listingId
+  profileId: string
+  listingId: string
+  listingData: Listing
+  matchedAt: string
+  notified: boolean
+}
+
+export type NotificationType =
+  | 'new_listing'
+  | 'viewing_request'
+  | 'viewing_confirmation'
+  | 'viewing_feedback_request'
+
+export type NotificationChannel = 'email' | 'sms_placeholder' | 'push_placeholder'
+
+export interface Notification {
+  userId: string
+  notificationId: string
+  type: NotificationType
+  channel: NotificationChannel
+  recipientAddress: string
+  subject: string
+  sentAt: string
+  status: string
+}
+
+export type ViewingStatus = 'requested' | 'confirmed' | 'completed' | 'cancelled'
+
+export interface ViewingFeedback {
+  rating: number  // 1-5
+  notes: string
+  wouldMakeOffer: boolean
+}
+
+export interface Viewing {
+  userId: string
+  viewingId: string
+  listingId: string
+  profileId: string
+  listingAddress: string
+  agentEmail?: string
+  agentName?: string
+  requestedAt: string
+  proposedDateTime?: string
+  status: ViewingStatus
+  feedback?: ViewingFeedback
+  feedbackRequestedAt?: string
+  feedbackCollectedAt?: string
+}
+
+// Bedrock Converse API types
+export interface ContentBlock {
+  text?: string
+  toolUse?: {
+    toolUseId: string
+    name: string
+    input: unknown
+  }
+  toolResult?: {
+    toolUseId: string
+    content: Array<{ text: string }>
+    status?: 'success' | 'error'
+  }
+}
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: ContentBlock[]
+}

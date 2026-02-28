@@ -3,6 +3,7 @@ import '@/style/global.css'
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import LayoutContextProvider from '@/components/layout/layout-context'
+import { SidebarRefreshProvider } from '@/components/layout/sidebar-refresh-context'
 import Header from '@/components/layout/containers/header'
 import Main from '@/components/layout/containers/main'
 import ContentWrapper from '@/components/layout/containers/content-wrapper'
@@ -33,7 +34,9 @@ function AppLayoutInner() {
 export default function AppLayout() {
   return (
     <LayoutContextProvider>
-      <AppLayoutInner />
+      <SidebarRefreshProvider>
+        <AppLayoutInner />
+      </SidebarRefreshProvider>
     </LayoutContextProvider>
   )
 }

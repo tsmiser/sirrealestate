@@ -7,7 +7,10 @@ import { CertStack } from '../lib/cert-stack'
 import { UiStack } from '../lib/ui-stack'
 import { AuthStack } from '../lib/auth-stack'
 import { ApiStack } from '../lib/api-stack'
+import { DataStack } from '../lib/data-stack'
+import { SesStack } from '../lib/ses-stack'
 import { ChatServiceStack } from '../lib/chat-service-stack'
+import { SearchWorkerStack } from '../lib/search-worker-stack'
 
 const app = new App()
 const config = getConfig(app)
@@ -57,12 +60,40 @@ const apiStack = new ApiStack(app, 'SirRealtor-Api', {
 })
 apiStack.addDependency(certStack)
 
+// DynamoDB tables — deploy before Chat and SearchWorker stacks
+const dataStack = new DataStack(app, 'SirRealtor-Data', { env: prodEnv })
+
+// SES domain identity — uses app hosted zone for DKIM DNS records
+const sesStack = new SesStack(app, 'SirRealtor-Ses', {
+  env: prodEnv,
+  domainName: config.baseDomain,
+  hostedZone: dnsStack.appHostedZone,
+})
+sesStack.addDependency(dnsStack)
+
 const chatServiceStack = new ChatServiceStack(app, 'SirRealtor-Chat', {
   env: prodEnv,
   httpApi: apiStack.httpApi,
   userPool: authStack.userPool,
   userPoolClient: authStack.userPoolClient,
-  domainName: config.appDomain,
+  domainName: config.baseDomain,
+  userProfileTable: dataStack.userProfileTable,
+  searchResultsTable: dataStack.searchResultsTable,
+  notificationsTable: dataStack.notificationsTable,
+  viewingsTable: dataStack.viewingsTable,
 })
 chatServiceStack.addDependency(apiStack)
 chatServiceStack.addDependency(authStack)
+chatServiceStack.addDependency(dataStack)
+chatServiceStack.addDependency(sesStack)
+
+const searchWorkerStack = new SearchWorkerStack(app, 'SirRealtor-SearchWorker', {
+  env: prodEnv,
+  userProfileTable: dataStack.userProfileTable,
+  searchResultsTable: dataStack.searchResultsTable,
+  notificationsTable: dataStack.notificationsTable,
+  viewingsTable: dataStack.viewingsTable,
+  domainName: config.baseDomain,
+})
+searchWorkerStack.addDependency(dataStack)
+searchWorkerStack.addDependency(sesStack)

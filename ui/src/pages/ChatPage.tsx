@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Box,
   Button,
@@ -12,10 +13,12 @@ import {
 import { chat } from '@/services/api'
 import ChatMessage from '@/pages/chat/chat-message'
 import { Conversation } from '@/pages/chat/types'
+import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
 import NiArrowOutUp from '@/icons/nexture/ni-arrow-out-up'
 import NiMicrophone from '@/icons/nexture/ni-microphone'
 import NiSendRight from '@/icons/nexture/ni-send-right'
 import { cn } from '@/lib/utils'
+import type { ConversationMessage } from '@/types'
 
 const SUGGESTED_QUESTIONS = [
   'What neighborhoods in my area have the best value?',
@@ -24,11 +27,22 @@ const SUGGESTED_QUESTIONS = [
 ]
 
 export default function ChatPage() {
+  const [searchParams] = useSearchParams()
   const [inputValue, setInputValue] = useState('')
   const [conversation, setConversation] = useState<Conversation[]>([])
+  const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [sessionId, setSessionId] = useState<string | undefined>()
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
+
+  // If launched with ?feedback=viewingId, pre-fill a feedback prompt
+  useEffect(() => {
+    const feedbackId = searchParams.get('feedback')
+    if (feedbackId) {
+      setInputValue(`I'd like to share feedback about my viewing (ID: ${feedbackId})`)
+    }
+  }, [searchParams])
 
   const sendMessage = async (message: string) => {
     if (!message.trim() || isLoading) return
@@ -43,9 +57,23 @@ export default function ChatPage() {
     setInputValue('')
     setIsLoading(true)
 
+    const newUserMessage: ConversationMessage = {
+      role: 'user',
+      content: [{ text: message }],
+    }
+    const updatedMessages: ConversationMessage[] = [...messages, newUserMessage]
+
     try {
-      const response = await chat.send({ message, sessionId })
+      const response = await chat.send({ messages: updatedMessages, sessionId })
       setSessionId(response.sessionId)
+      setMessages(response.messages)
+
+      // Invalidate sidebar data after any tool use
+      if (response.hasToolUse) {
+        invalidateProfile()
+        invalidateSearchResults()
+      }
+
       setConversation((prev) => [
         ...prev,
         {

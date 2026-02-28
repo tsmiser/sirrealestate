@@ -1,6 +1,9 @@
 // Zero React dependencies — portable as-is to any JS environment.
 import { fetchAuthSession } from 'aws-amplify/auth'
 import type { ChatRequest, ChatResponse } from '@/types'
+import type { UserProfile } from '@/hooks/useUserProfile'
+import type { SearchResult } from '@/hooks/useSearchResults'
+import type { Viewing } from '@/hooks/useViewings'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -39,4 +42,16 @@ export const api = {
 
 export const chat = {
   send: (req: ChatRequest) => api.post<ChatResponse>('/chat', req),
+}
+
+export const profile = {
+  get: () => api.get<UserProfile>('/profile'),
+}
+
+export const searchResults = {
+  get: () => api.get<{ results: SearchResult[]; grouped: Record<string, SearchResult[]> }>('/search-results'),
+}
+
+export const viewings = {
+  get: () => api.get<{ viewings: Viewing[] }>('/viewings'),
 }

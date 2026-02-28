@@ -1,6 +1,6 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from 'react'
 
-const SIDEBAR_WIDTH = 240
+const SIDEBAR_WIDTH = 280
 
 type LayoutContextType = {
   sidebarOpen: boolean
