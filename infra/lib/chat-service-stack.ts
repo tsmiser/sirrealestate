@@ -10,7 +10,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import type { Construct } from 'constructs'
 
-const BEDROCK_MODEL_ID = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
+const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
 
 const SYSTEM_PROMPT =
   'You are SirRealtor, an expert AI real estate agent. You help users find properties by ' +
@@ -66,7 +66,7 @@ export class ChatServiceStack extends Stack {
         // Cross-region inference profiles route through multiple US regions,
         // so the foundation model and inference profile ARNs need wildcard regions.
         resources: [
-          'arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0',
+          'arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-5-20250929-v1:0',
           `arn:aws:bedrock:*:${this.account}:inference-profile/${BEDROCK_MODEL_ID}`,
         ],
       }),
