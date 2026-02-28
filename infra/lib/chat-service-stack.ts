@@ -78,6 +78,14 @@ export class ChatServiceStack extends Stack {
     props.notificationsTable.grantWriteData(chatLambda)
     props.viewingsTable.grantReadWriteData(chatLambda)
 
+    // AWS Marketplace permissions required for Claude Sonnet 4.5 subscription check
+    chatLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['aws-marketplace:ViewSubscriptions', 'aws-marketplace:Subscribe'],
+        resources: ['*'],
+      }),
+    )
+
     // SES permission for schedule_viewing tool
     chatLambda.addToRolePolicy(
       new iam.PolicyStatement({
