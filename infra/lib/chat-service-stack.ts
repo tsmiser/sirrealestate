@@ -12,7 +12,7 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import type { Construct } from 'constructs'
 
-const ANTHROPIC_MODEL_ID = 'claude-sonnet-4-5-20250929'
+const ANTHROPIC_MODEL_ID = 'claude-sonnet-4-6'
 
 const SYSTEM_PROMPT =
   'You are SirRealtor, an expert AI real estate agent. You help users find properties by ' +
