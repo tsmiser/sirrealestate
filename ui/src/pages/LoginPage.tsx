@@ -1,7 +1,7 @@
 import '@/style/global.css'
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { signIn } from 'aws-amplify/auth'
 import {
   Alert,
@@ -69,7 +69,7 @@ export default function LoginPage() {
               className="flex flex-col gap-5"
             >
               <FormControl className="outlined" variant="standard" size="small">
-                <FormLabel component="label">Email</FormLabel>
+                <FormLabel component="label" className="mb-0.5!">Email</FormLabel>
                 <Input
                   id="email"
                   type="email"
@@ -81,7 +81,7 @@ export default function LoginPage() {
               </FormControl>
 
               <FormControl className="outlined" variant="standard" size="small">
-                <FormLabel component="label">Password</FormLabel>
+                <FormLabel component="label" className="mb-0.5!">Password</FormLabel>
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -113,6 +113,13 @@ export default function LoginPage() {
                 </Alert>
               )}
 
+              <Link
+                to="/forgot-password"
+                className="link-text-secondary link-underline-hover text-center text-sm font-semibold"
+              >
+                Forgot password?
+              </Link>
+
               <Button
                 type="submit"
                 variant="contained"
@@ -130,7 +137,10 @@ export default function LoginPage() {
                 Get Started
               </Typography>
               <Typography variant="body1" className="text-text-secondary">
-                Don't have an account yet? Contact your administrator to get access.
+                Don't have an account yet?{' '}
+                <Link to="/sign-up" className="link-primary link-underline-hover">
+                  Sign up
+                </Link>
               </Typography>
             </Box>
           </Box>
