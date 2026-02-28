@@ -67,9 +67,7 @@ const dataStack = new DataStack(app, 'SirRealtor-Data', { env: prodEnv })
 const sesStack = new SesStack(app, 'SirRealtor-Ses', {
   env: prodEnv,
   domainName: config.baseDomain,
-  hostedZone: dnsStack.appHostedZone,
 })
-sesStack.addDependency(dnsStack)
 
 const chatServiceStack = new ChatServiceStack(app, 'SirRealtor-Chat', {
   env: prodEnv,
