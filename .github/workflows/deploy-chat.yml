@@ -15,6 +15,7 @@ jobs:
   deploy:
     name: CDK Deploy SirRealtor-Chat
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       id-token: write
       contents: read

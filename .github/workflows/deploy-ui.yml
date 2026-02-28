@@ -15,6 +15,7 @@ jobs:
   deploy:
     name: Build and Sync to S3
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       id-token: write
       contents: read
