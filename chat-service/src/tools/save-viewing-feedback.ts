@@ -8,29 +8,27 @@ export const definition = {
   name: 'save_viewing_feedback',
   description:
     'Save feedback from the user about a property viewing. Call this after the user shares their thoughts on a viewing — their rating, any notes, and whether they\'d consider making an offer.',
-  inputSchema: {
-    json: {
-      type: 'object',
-      properties: {
-        viewingId: {
-          type: 'string',
-          description: 'The viewing ID to save feedback for.',
-        },
-        rating: {
-          type: 'number',
-          description: 'Rating from 1 (poor) to 5 (excellent).',
-        },
-        notes: {
-          type: 'string',
-          description: 'The user\'s notes about the property (e.g. what they liked/disliked).',
-        },
-        wouldMakeOffer: {
-          type: 'boolean',
-          description: 'Whether the user is interested in making an offer on this property.',
-        },
+  input_schema: {
+    type: 'object',
+    properties: {
+      viewingId: {
+        type: 'string',
+        description: 'The viewing ID to save feedback for.',
       },
-      required: ['viewingId', 'rating', 'notes', 'wouldMakeOffer'],
+      rating: {
+        type: 'number',
+        description: 'Rating from 1 (poor) to 5 (excellent).',
+      },
+      notes: {
+        type: 'string',
+        description: 'The user\'s notes about the property (e.g. what they liked/disliked).',
+      },
+      wouldMakeOffer: {
+        type: 'boolean',
+        description: 'Whether the user is interested in making an offer on this property.',
+      },
     },
+    required: ['viewingId', 'rating', 'notes', 'wouldMakeOffer'],
   },
 }
 

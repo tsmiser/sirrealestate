@@ -105,20 +105,26 @@ export interface Viewing {
   feedbackCollectedAt?: string
 }
 
-// Bedrock Converse API types
-export interface ContentBlock {
-  text?: string
-  toolUse?: {
-    toolUseId: string
-    name: string
-    input: unknown
-  }
-  toolResult?: {
-    toolUseId: string
-    content: Array<{ text: string }>
-    status?: 'success' | 'error'
-  }
+// Anthropic SDK compatible message types
+export interface TextContentBlock {
+  type: 'text'
+  text: string
 }
+
+export interface ToolUseContentBlock {
+  type: 'tool_use'
+  id: string
+  name: string
+  input: unknown
+}
+
+export interface ToolResultContentBlock {
+  type: 'tool_result'
+  tool_use_id: string
+  content: string
+}
+
+export type ContentBlock = TextContentBlock | ToolUseContentBlock | ToolResultContentBlock
 
 export interface ConversationMessage {
   role: 'user' | 'assistant'

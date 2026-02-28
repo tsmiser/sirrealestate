@@ -8,12 +8,10 @@ export const definition = {
   name: 'get_user_profile',
   description:
     'Retrieve the current user\'s profile including all search profiles, criteria, and monitoring settings. Call this at the start of a conversation to understand what the user has already set up.',
-  inputSchema: {
-    json: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
+  input_schema: {
+    type: 'object',
+    properties: {},
+    required: [],
   },
 }
 

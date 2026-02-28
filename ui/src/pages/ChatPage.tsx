@@ -59,7 +59,7 @@ export default function ChatPage() {
 
     const newUserMessage: ConversationMessage = {
       role: 'user',
-      content: [{ text: message }],
+      content: [{ type: 'text', text: message }],
     }
     const updatedMessages: ConversationMessage[] = [...messages, newUserMessage]
 

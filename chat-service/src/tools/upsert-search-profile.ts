@@ -9,47 +9,45 @@ export const definition = {
   name: 'upsert_search_profile',
   description:
     'Create or update a search profile for the user. Use this when the user describes what kind of property they\'re looking for, or when they want to update existing criteria. You can also toggle monitoring on/off and notification preferences. If profileId is omitted, a new profile is created.',
-  inputSchema: {
-    json: {
-      type: 'object',
-      properties: {
-        profileId: {
-          type: 'string',
-          description: 'UUID of an existing search profile to update. Omit to create a new one.',
-        },
-        name: {
-          type: 'string',
-          description: 'A short, descriptive name for this search profile, e.g. "3BR Austin under 500k"',
-        },
-        criteria: {
-          type: 'object',
-          description: 'Search criteria for property matching.',
-          properties: {
-            minPrice: { type: 'number' },
-            maxPrice: { type: 'number' },
-            bedrooms: { type: 'number' },
-            bathrooms: { type: 'number' },
-            propertyType: { type: 'string', description: 'e.g. single_family, condo, townhouse' },
-            city: { type: 'string' },
-            state: { type: 'string', description: '2-letter state code, e.g. TX' },
-            zipCodes: { type: 'array', items: { type: 'string' } },
-          },
-        },
-        monitoring: {
-          type: 'boolean',
-          description: 'Whether to run daily MLS searches for this profile and email results.',
-        },
-        emailNotifications: {
-          type: 'boolean',
-          description: 'Whether to send email notifications for new matches.',
-        },
-        isDefault: {
-          type: 'boolean',
-          description: 'Set this as the default search profile.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      profileId: {
+        type: 'string',
+        description: 'UUID of an existing search profile to update. Omit to create a new one.',
+      },
+      name: {
+        type: 'string',
+        description: 'A short, descriptive name for this search profile, e.g. "3BR Austin under 500k"',
+      },
+      criteria: {
+        type: 'object',
+        description: 'Search criteria for property matching.',
+        properties: {
+          minPrice: { type: 'number' },
+          maxPrice: { type: 'number' },
+          bedrooms: { type: 'number' },
+          bathrooms: { type: 'number' },
+          propertyType: { type: 'string', description: 'e.g. single_family, condo, townhouse' },
+          city: { type: 'string' },
+          state: { type: 'string', description: '2-letter state code, e.g. TX' },
+          zipCodes: { type: 'array', items: { type: 'string' } },
         },
       },
-      required: ['name', 'criteria'],
+      monitoring: {
+        type: 'boolean',
+        description: 'Whether to run daily MLS searches for this profile and email results.',
+      },
+      emailNotifications: {
+        type: 'boolean',
+        description: 'Whether to send email notifications for new matches.',
+      },
+      isDefault: {
+        type: 'boolean',
+        description: 'Set this as the default search profile.',
+      },
     },
+    required: ['name', 'criteria'],
   },
 }
 

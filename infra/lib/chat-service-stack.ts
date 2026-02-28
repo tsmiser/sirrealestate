@@ -1,6 +1,5 @@
 import * as path from 'path'
 import { Duration, Stack, CfnOutput, type StackProps } from 'aws-cdk-lib'
-import * as iam from 'aws-cdk-lib/aws-iam'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2'
@@ -8,9 +7,11 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import type { Construct } from 'constructs'
 
-const BEDROCK_MODEL_ID = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
+const ANTHROPIC_MODEL_ID = 'claude-sonnet-4-5-20250929'
 
 const SYSTEM_PROMPT =
   'You are SirRealtor, an expert AI real estate agent. You help users find properties by ' +
@@ -45,6 +46,11 @@ export class ChatServiceStack extends Stack {
 
     const bundlingOptions = { externalModules: [] as string[] }
 
+    // Reference the manually-created Anthropic API key secret (create this in Secrets Manager first)
+    const anthropicApiKeySecret = secretsmanager.Secret.fromSecretNameV2(
+      this, 'AnthropicApiKey', 'SirRealtor/AnthropicApiKey',
+    )
+
     // Chat Lambda
     const chatLambda = new NodejsFunction(this, 'ChatLambda', {
       entry: path.join(__dirname, '../../chat-service/src/handler.ts'),
@@ -52,39 +58,22 @@ export class ChatServiceStack extends Stack {
       runtime: lambda.Runtime.NODEJS_22_X,
       timeout: Duration.seconds(60),
       environment: {
-        BEDROCK_MODEL_ID,
+        ANTHROPIC_MODEL_ID,
+        ANTHROPIC_API_KEY_SECRET_ARN: anthropicApiKeySecret.secretArn,
         SYSTEM_PROMPT,
         ...tableEnv,
       },
       bundling: bundlingOptions,
     })
 
-    // Bedrock Converse permission
-    chatLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['bedrock:InvokeModel', 'bedrock:Converse'],
-        // Cross-region inference profiles route through multiple US regions,
-        // so the foundation model and inference profile ARNs need wildcard regions.
-        resources: [
-          'arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0',
-          `arn:aws:bedrock:*:${this.account}:inference-profile/${BEDROCK_MODEL_ID}`,
-        ],
-      }),
-    )
+    // Anthropic API key read permission
+    anthropicApiKeySecret.grantRead(chatLambda)
 
     // DynamoDB permissions for chat lambda
     props.userProfileTable.grantReadWriteData(chatLambda)
     props.searchResultsTable.grantReadData(chatLambda)
     props.notificationsTable.grantWriteData(chatLambda)
     props.viewingsTable.grantReadWriteData(chatLambda)
-
-    // AWS Marketplace permissions required for Claude Sonnet 4.5 subscription check
-    chatLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['aws-marketplace:ViewSubscriptions', 'aws-marketplace:Subscribe'],
-        resources: ['*'],
-      }),
-    )
 
     // SES permission for schedule_viewing tool
     chatLambda.addToRolePolicy(
@@ -150,9 +139,9 @@ export class ChatServiceStack extends Stack {
       authorizer: cognitoAuthorizer,
     })
 
-    new CfnOutput(this, 'BedrockModelId', {
-      value: BEDROCK_MODEL_ID,
-      description: 'Bedrock model used by the chat Lambda',
+    new CfnOutput(this, 'AnthropicModelId', {
+      value: ANTHROPIC_MODEL_ID,
+      description: 'Anthropic model used by the chat Lambda',
     })
   }
 }

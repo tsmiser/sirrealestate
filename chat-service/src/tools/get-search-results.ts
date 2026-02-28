@@ -9,21 +9,19 @@ export const definition = {
   name: 'get_search_results',
   description:
     'Retrieve recent property matches for the user from automated daily searches. Use this when the user asks about listings found for them, or to show what properties match their saved search profiles.',
-  inputSchema: {
-    json: {
-      type: 'object',
-      properties: {
-        profileId: {
-          type: 'string',
-          description: 'Filter results to a specific search profile. Omit to get results across all profiles.',
-        },
-        limit: {
-          type: 'number',
-          description: 'Maximum number of results to return (default 10, max 50).',
-        },
+  input_schema: {
+    type: 'object',
+    properties: {
+      profileId: {
+        type: 'string',
+        description: 'Filter results to a specific search profile. Omit to get results across all profiles.',
       },
-      required: [],
+      limit: {
+        type: 'number',
+        description: 'Maximum number of results to return (default 10, max 50).',
+      },
     },
+    required: [],
   },
 }
 

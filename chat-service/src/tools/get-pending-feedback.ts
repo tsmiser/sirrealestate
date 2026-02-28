@@ -9,12 +9,10 @@ export const definition = {
   name: 'get_pending_feedback',
   description:
     'Check if the user has any completed property viewings that they haven\'t yet provided feedback for. Call this at the start of each conversation to naturally ask about recent viewings.',
-  inputSchema: {
-    json: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
+  input_schema: {
+    type: 'object',
+    properties: {},
+    required: [],
   },
 }
 

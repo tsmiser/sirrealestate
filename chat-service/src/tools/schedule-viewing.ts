@@ -15,25 +15,23 @@ export const definition = {
   name: 'schedule_viewing',
   description:
     'Schedule a property viewing by sending a request email to the seller\'s agent and a confirmation to the buyer. Use this when the user wants to arrange a visit to a property they\'ve found.',
-  inputSchema: {
-    json: {
-      type: 'object',
-      properties: {
-        listingId: {
-          type: 'string',
-          description: 'The listing ID from search results.',
-        },
-        profileId: {
-          type: 'string',
-          description: 'The search profile ID that found this listing.',
-        },
-        proposedDateTime: {
-          type: 'string',
-          description: 'Proposed date and time for the viewing in ISO 8601 format, e.g. "2026-03-15T14:00:00".',
-        },
+  input_schema: {
+    type: 'object',
+    properties: {
+      listingId: {
+        type: 'string',
+        description: 'The listing ID from search results.',
       },
-      required: ['listingId', 'profileId'],
+      profileId: {
+        type: 'string',
+        description: 'The search profile ID that found this listing.',
+      },
+      proposedDateTime: {
+        type: 'string',
+        description: 'Proposed date and time for the viewing in ISO 8601 format, e.g. "2026-03-15T14:00:00".',
+      },
     },
+    required: ['listingId', 'profileId'],
   },
 }
 

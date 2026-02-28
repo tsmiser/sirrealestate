@@ -1,5 +1,6 @@
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
-import type { Message, ContentBlock } from '@aws-sdk/client-bedrock-runtime'
+import Anthropic from '@anthropic-ai/sdk'
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
+import type { MessageParam, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages'
 import type { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda'
 import * as GetUserProfile from './tools/get-user-profile'
 import * as UpsertSearchProfile from './tools/upsert-search-profile'
@@ -9,17 +10,26 @@ import * as GetPendingFeedback from './tools/get-pending-feedback'
 import * as SaveViewingFeedback from './tools/save-viewing-feedback'
 import type { ConversationMessage } from './types'
 
-const bedrock = new BedrockRuntimeClient({})
+const secretsManager = new SecretsManagerClient({})
+let anthropic: Anthropic | null = null
 
-// Bedrock Converse SDK Tool type uses a union with $unknown; cast via unknown
-const TOOLS = [
-  { toolSpec: GetUserProfile.definition },
-  { toolSpec: UpsertSearchProfile.definition },
-  { toolSpec: GetSearchResults.definition },
-  { toolSpec: ScheduleViewing.definition },
-  { toolSpec: GetPendingFeedback.definition },
-  { toolSpec: SaveViewingFeedback.definition },
-] as unknown as import('@aws-sdk/client-bedrock-runtime').Tool[]
+async function getClient(): Promise<Anthropic> {
+  if (anthropic) return anthropic
+  const { SecretString } = await secretsManager.send(
+    new GetSecretValueCommand({ SecretId: process.env.ANTHROPIC_API_KEY_SECRET_ARN! }),
+  )
+  anthropic = new Anthropic({ apiKey: SecretString! })
+  return anthropic
+}
+
+const TOOLS: Anthropic.Tool[] = [
+  GetUserProfile.definition,
+  UpsertSearchProfile.definition,
+  GetSearchResults.definition,
+  ScheduleViewing.definition,
+  GetPendingFeedback.definition,
+  SaveViewingFeedback.definition,
+] as Anthropic.Tool[]
 
 async function executeTool(
   name: string,
@@ -73,11 +83,8 @@ export async function handler(
   const userEmail = (claims['email'] as string | undefined) ?? ''
   const resolvedSessionId = sessionId ?? userId
 
-  // Tool use loop
-  const conversationMessages: Message[] = messages.map((m) => ({
-    role: m.role,
-    content: m.content as ContentBlock[],
-  }))
+  const client = await getClient()
+  const conversationMessages: MessageParam[] = messages as MessageParam[]
 
   try {
     let reply = ''
@@ -85,67 +92,46 @@ export async function handler(
     const MAX_TOOL_ROUNDS = 10
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const response = await bedrock.send(
-        new ConverseCommand({
-          modelId: process.env.BEDROCK_MODEL_ID!,
-          system: [{ text: process.env.SYSTEM_PROMPT! }],
-          messages: conversationMessages,
-          toolConfig: { tools: TOOLS },
-          inferenceConfig: { maxTokens: 1024 },
-        }),
-      )
+      const response = await client.messages.create({
+        model: process.env.ANTHROPIC_MODEL_ID!,
+        max_tokens: 1024,
+        system: process.env.SYSTEM_PROMPT!,
+        tools: TOOLS,
+        messages: conversationMessages,
+      })
 
-      const assistantMessage = response.output?.message
-      if (!assistantMessage) break
+      conversationMessages.push({ role: 'assistant', content: response.content })
 
-      conversationMessages.push(assistantMessage)
-
-      if (response.stopReason === 'end_turn') {
-        const textBlock = assistantMessage.content?.find((b) => 'text' in b && b.text)
-        reply = (textBlock as { text: string } | undefined)?.text ?? ''
+      if (response.stop_reason === 'end_turn') {
+        const textBlock = response.content.find((b) => b.type === 'text')
+        reply = textBlock?.type === 'text' ? textBlock.text : ''
         break
       }
 
-      if (response.stopReason === 'tool_use') {
+      if (response.stop_reason === 'tool_use') {
         hasToolUse = true
-        const toolUseBlocks = (assistantMessage.content ?? []).filter(
-          (b): b is ContentBlock & { toolUse: NonNullable<ContentBlock['toolUse']> } => 'toolUse' in b && b.toolUse != null,
-        )
+        const toolUseBlocks = response.content.filter((b): b is ToolUseBlock => b.type === 'tool_use')
 
-        const toolResultContents: ContentBlock[] = await Promise.all(
+        const toolResults = await Promise.all(
           toolUseBlocks.map(async (block) => {
-            const toolResult = await executeTool(
-              block.toolUse.name!,
-              block.toolUse.input,
-              userId,
-              userEmail,
-            ).catch((err: unknown) => ({ error: String(err) }))
-
+            const result = await executeTool(block.name, block.input, userId, userEmail)
+              .catch((err: unknown) => ({ error: String(err) }))
             return {
-              toolResult: {
-                toolUseId: block.toolUse.toolUseId,
-                content: [{ text: JSON.stringify(toolResult) }],
-                status: 'success' as const,
-              },
+              type: 'tool_result' as const,
+              tool_use_id: block.id,
+              content: JSON.stringify(result),
             }
           }),
         )
 
-        conversationMessages.push({
-          role: 'user',
-          content: toolResultContents,
-        })
+        conversationMessages.push({ role: 'user', content: toolResults })
         continue
       }
 
       break
     }
 
-    // Build updated messages array (original messages + tool-use rounds + final assistant turn)
-    const updatedMessages: ConversationMessage[] = conversationMessages.map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: (m.content ?? []) as ConversationMessage['content'],
-    }))
+    const updatedMessages: ConversationMessage[] = conversationMessages as ConversationMessage[]
 
     return {
       statusCode: 200,
@@ -157,7 +143,7 @@ export async function handler(
       }),
     }
   } catch (err) {
-    console.error('Bedrock Converse failed', err)
+    console.error('Anthropic API call failed', err)
     return { statusCode: 500, body: JSON.stringify({ error: 'Failed to invoke model' }) }
   }
 }
