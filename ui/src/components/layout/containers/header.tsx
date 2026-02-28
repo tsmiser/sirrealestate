@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, Box, Button, Menu, MenuItem, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
 import knightLogo from '@/assets/knight.png'
@@ -7,6 +7,7 @@ import NiMenuSplit from '@/icons/nexture/ni-menu-split'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function Header() {
+  const navigate = useNavigate()
   const { toggleSidebar } = useLayoutContext()
   const { user, signOut } = useAuth()
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
@@ -58,9 +59,10 @@ export default function Header() {
             </Typography>
           </MenuItem>
           <MenuItem
-            onClick={() => {
+            onClick={async () => {
               setUserMenuAnchor(null)
-              signOut()
+              await signOut()
+              navigate('/login', { replace: true })
             }}
           >
             Sign out
