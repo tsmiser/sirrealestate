@@ -10,7 +10,6 @@ import {
   Typography,
 } from '@mui/material'
 import { chat } from '@/services/api'
-import { useAuth } from '@/hooks/useAuth'
 import ChatMessage from '@/pages/chat/chat-message'
 import { Conversation } from '@/pages/chat/types'
 import NiArrowOutUp from '@/icons/nexture/ni-arrow-out-up'
@@ -25,9 +24,6 @@ const SUGGESTED_QUESTIONS = [
 ]
 
 export default function ChatPage() {
-  const { user } = useAuth()
-  const firstName = user?.username?.split('@')[0] ?? 'there'
-
   const [inputValue, setInputValue] = useState('')
   const [conversation, setConversation] = useState<Conversation[]>([])
   const [sessionId, setSessionId] = useState<string | undefined>()
@@ -106,10 +102,10 @@ export default function ChatPage() {
         {conversation.length === 0 ? (
           <Box className="flex flex-col items-center gap-4">
             <Typography
-              variant="h1"
-              className="from-primary-dark via-primary to-primary-light inline-block bg-linear-to-r bg-clip-text text-center text-transparent"
+              variant="h3"
+              className="from-primary-dark via-primary to-primary-light inline-block max-w-lg bg-linear-to-r bg-clip-text text-center text-transparent"
             >
-              Welcome{firstName !== 'there' ? `, ${firstName}` : ''}! How can I help?
+              Hi there, I'm Sir Realtor. I'm here to help you find your next home. I'll serve as your virtual real estate agent at a fraction of the cost you'd normally pay. First just describe what you're looking for and I'll ask some questions to help further refine the details.
             </Typography>
 
             <Box className="mt-2 flex flex-col items-center gap-1">
