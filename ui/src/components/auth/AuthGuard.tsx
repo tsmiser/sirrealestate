@@ -1,7 +1,6 @@
-// This is the ONLY file that imports @aws-amplify/ui-react.
-// Swap this file for a React Native equivalent to achieve full portability.
-import { Authenticator } from '@aws-amplify/ui-react'
-import '@aws-amplify/ui-react/styles.css'
+// Route guard — no @aws-amplify/ui-react dependency. Swap for React Native equivalent if needed.
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import type { ReactNode } from 'react'
 
 interface AuthGuardProps {
@@ -9,9 +8,9 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  return (
-    <Authenticator>
-      {() => <>{children}</>}
-    </Authenticator>
-  )
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) return null
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
 }

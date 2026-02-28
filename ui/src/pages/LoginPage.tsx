@@ -1,12 +1,154 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import '@/style/global.css'
+
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { signIn } from 'aws-amplify/auth'
+import {
+  Alert,
+  AlertTitle,
+  Box,
+  Button,
+  Divider,
+  FormControl,
+  FormLabel,
+  IconButton,
+  Input,
+  InputAdornment,
+  Paper,
+  Typography,
+} from '@mui/material'
+import MuiLayerOverride from '@/theme/mui-layer-override'
+import Logo from '@/components/logo/logo'
+import NiEyeClose from '@/icons/nexture/ni-eye-close'
+import NiEyeOpen from '@/icons/nexture/ni-eye-open'
 
 export default function LoginPage() {
-  const { user, isLoading } = useAuth()
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  if (isLoading) return null
-  if (user) return <Navigate to="/chat" replace />
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) {
+      setError('Email and password are required.')
+      return
+    }
+    setError(null)
+    setLoading(true)
+    try {
+      const { isSignedIn } = await signIn({ username: email, password })
+      if (isSignedIn) {
+        navigate('/chat', { replace: true })
+      } else {
+        setError('Sign-in requires additional steps. Please contact support.')
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sign-in failed. Please try again.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  // Redirect to chat — AuthGuard will show the Amplify Authenticator
-  return <Navigate to="/chat" replace />
+  return (
+    <>
+      <MuiLayerOverride />
+      <Box className="bg-waves flex min-h-screen w-full items-center justify-center bg-cover bg-center p-4">
+        <Paper elevation={3} className="bg-background-paper shadow-darker-xs w-lg max-w-full rounded-4xl py-14">
+          <Box className="flex flex-col gap-4 px-8 sm:px-14">
+            <Box className="flex flex-col">
+              <Box className="mb-14 flex justify-center">
+                <Logo />
+              </Box>
+
+              <Box className="flex flex-col gap-10">
+                <Box className="flex flex-col">
+                  <Typography variant="h1" component="h1" className="mb-2">
+                    Sign in
+                  </Typography>
+                  <Typography variant="body1" className="text-text-primary">
+                    Access your account to get real estate guidance from SirRealtor.
+                  </Typography>
+                </Box>
+
+                <Box
+                  component="form"
+                  onSubmit={handleSubmit}
+                  className="flex flex-col gap-5"
+                >
+                  <FormControl className="outlined" variant="standard" size="small">
+                    <FormLabel component="label">Email</FormLabel>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                    />
+                  </FormControl>
+
+                  <FormControl className="outlined" variant="standard" size="small">
+                    <FormLabel component="label">Password</FormLabel>
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder=""
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      endAdornment={
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword((s) => !s)}
+                            onMouseDown={(e) => e.preventDefault()}
+                          >
+                            {showPassword ? (
+                              <NiEyeClose size="medium" className="text-text-secondary" />
+                            ) : (
+                              <NiEyeOpen size="medium" className="text-text-secondary" />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      }
+                    />
+                  </FormControl>
+
+                  {error && (
+                    <Alert severity="error" className="neutral bg-background-paper/60!">
+                      <AlertTitle variant="subtitle2">Sign-in error</AlertTitle>
+                      <Typography variant="body2">{error}</Typography>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                    className="mt-2"
+                  >
+                    {loading ? 'Signing in…' : 'Continue'}
+                  </Button>
+                </Box>
+
+                <Divider className="text-text-secondary my-0 text-sm" />
+
+                <Box className="flex flex-col">
+                  <Typography variant="h6" component="h6">
+                    Get Started
+                  </Typography>
+                  <Typography variant="body1" className="text-text-secondary">
+                    Don't have an account yet? Contact your administrator to get access.
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+    </>
+  )
 }

@@ -6,6 +6,9 @@
     "types": ["vite/client"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
     "paths": {
       "@/*": ["./src/*"]
     }
