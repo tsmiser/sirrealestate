@@ -1,5 +1,5 @@
 // ci trigger
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -18,6 +18,7 @@ import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
 import NiArrowOutUp from '@/icons/nexture/ni-arrow-out-up'
 import NiMicrophone from '@/icons/nexture/ni-microphone'
 import NiSendRight from '@/icons/nexture/ni-send-right'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { cn } from '@/lib/utils'
 import type { ConversationMessage } from '@/types'
 
@@ -36,6 +37,14 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
+
+  const handleSpeechResult = useCallback((transcript: string) => {
+    setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript))
+  }, [])
+
+  const { isListening, isSupported, startListening, stopListening } = useSpeechRecognition({
+    onResult: handleSpeechResult,
+  })
 
   // If launched with ?feedback=viewingId, pre-fill a feedback prompt
   useEffect(() => {
@@ -191,14 +200,22 @@ export default function ChatPage() {
                 disabled={isLoading}
               />
               <Box className="absolute end-0 flex flex-row">
-                <Tooltip title="Voice" arrow enterDelay={2000}>
-                  <Button
-                    className="icon-only"
-                    size="medium"
-                    color="grey"
-                    variant="text"
-                    startIcon={<NiMicrophone size="medium" />}
-                  />
+                <Tooltip
+                  title={!isSupported ? 'Voice input not supported in this browser' : isListening ? 'Stop recording' : 'Voice'}
+                  arrow
+                  enterDelay={isListening ? 0 : 2000}
+                >
+                  <span>
+                    <Button
+                      className={cn('icon-only', isListening && 'animate-pulse')}
+                      size="medium"
+                      color={isListening ? 'error' : 'grey'}
+                      variant="text"
+                      disabled={!isSupported || isLoading}
+                      onClick={isListening ? stopListening : startListening}
+                      startIcon={<NiMicrophone size="medium" />}
+                    />
+                  </span>
                 </Tooltip>
                 <Tooltip title="Attach" arrow enterDelay={2000}>
                   <Button
