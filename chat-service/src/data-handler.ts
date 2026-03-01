@@ -5,6 +5,7 @@ import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
 import type { UserProfile, SearchResult, Viewing } from './types'
 import { viewingAgentResponseToBuyerEmail } from './email-templates'
+import { buildListingUrl } from './mls/listing-url'
 
 const dynamo = new DynamoDBClient({})
 const ses = new SESClient({})
@@ -31,18 +32,35 @@ async function getProfile(userId: string): Promise<APIGatewayProxyResultV2> {
 }
 
 async function getSearchResults(userId: string): Promise<APIGatewayProxyResultV2> {
-  const result = await dynamo.send(
-    new QueryCommand({
-      TableName: process.env.SEARCH_RESULTS_TABLE!,
-      IndexName: 'userId-matchedAt-index',
-      KeyConditionExpression: 'userId = :uid',
-      ExpressionAttributeValues: { ':uid': { S: userId } },
-      ScanIndexForward: false,  // descending by matchedAt
-      Limit: 100,
-    }),
-  )
+  const [queryResult, profileResult] = await Promise.all([
+    dynamo.send(
+      new QueryCommand({
+        TableName: process.env.SEARCH_RESULTS_TABLE!,
+        IndexName: 'userId-matchedAt-index',
+        KeyConditionExpression: 'userId = :uid',
+        ExpressionAttributeValues: { ':uid': { S: userId } },
+        ScanIndexForward: false,  // descending by matchedAt
+        Limit: 100,
+      }),
+    ),
+    dynamo.send(
+      new GetItemCommand({
+        TableName: process.env.USER_PROFILE_TABLE!,
+        Key: { userId: { S: userId } },
+        ProjectionExpression: 'listingViewingPreference',
+      }),
+    ),
+  ])
 
-  const results = (result.Items ?? []).map((item: Record<string, AttributeValue>) => unmarshall(item) as SearchResult)
+  const preference = profileResult.Item
+    ? (unmarshall(profileResult.Item) as Pick<UserProfile, 'listingViewingPreference'>).listingViewingPreference
+    : undefined
+
+  const results = (queryResult.Items ?? []).map((item: Record<string, AttributeValue>) => {
+    const r = unmarshall(item) as SearchResult
+    r.listingData.listingUrl = buildListingUrl(r.listingData.address, preference)
+    return r
+  })
 
   // Group by profileId
   const grouped: Record<string, SearchResult[]> = {}
