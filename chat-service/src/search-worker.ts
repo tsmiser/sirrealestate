@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto'
 import type { UserProfile, SearchProfile, SearchResult, Notification, Viewing } from './types'
 import type { Listing } from './mls/mls-provider'
 import { RentcastProvider } from './mls/rentcast-provider'
+import { buildListingUrl } from './mls/listing-url'
 import {
   newListingMatchEmail,
   viewingFeedbackRequestEmail,
@@ -118,10 +119,16 @@ async function processSearchProfile(
   const now = new Date().toISOString()
   const chatUrl = 'https://app.sirrealtor.com/chat'
 
+  // Enrich listings with platform URL based on user's preference
+  const enrichedListings = newListings.map((listing) => ({
+    ...listing,
+    listingUrl: buildListingUrl(listing.address, user.listingViewingPreference),
+  }))
+
   // BatchWrite new SearchResult records
   const BATCH_SIZE = 25
-  for (let i = 0; i < newListings.length; i += BATCH_SIZE) {
-    const batch = newListings.slice(i, i + BATCH_SIZE)
+  for (let i = 0; i < enrichedListings.length; i += BATCH_SIZE) {
+    const batch = enrichedListings.slice(i, i + BATCH_SIZE)
     const putRequests = batch.map((listing) => {
       const searchResult: SearchResult = {
         userId: user.userId,
@@ -145,7 +152,7 @@ async function processSearchProfile(
   // Send notifications for new listings
   const notificationChannel = searchProfile.notificationPreferences.email ? 'email' : null
   if (notificationChannel && user.email) {
-    for (const listing of newListings) {
+    for (const listing of enrichedListings) {
       try {
         const { subject, html } = newListingMatchEmail(listing as import('./types').Listing, chatUrl)
         await sendNotification('email', { to: user.email, subject, html })

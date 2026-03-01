@@ -41,6 +41,31 @@ export const definition = {
         enum: ['email', 'phone'],
         description: "The user's preferred contact method.",
       },
+      firstTimeHomeBuyer: {
+        type: 'boolean',
+        description: 'Whether the user is a first-time home buyer.',
+      },
+      currentCity: {
+        type: 'string',
+        description: "The city where the user currently lives.",
+      },
+      currentState: {
+        type: 'string',
+        description: "The state where the user currently lives (2-letter abbreviation).",
+      },
+      desiredCity: {
+        type: 'string',
+        description: "The city where the user wants to buy.",
+      },
+      desiredState: {
+        type: 'string',
+        description: "The state where the user wants to buy (2-letter abbreviation).",
+      },
+      listingViewingPreference: {
+        type: 'string',
+        enum: ['zillow', 'redfin', 'realtor'],
+        description: "The user's preferred platform for viewing listings online.",
+      },
     },
     required: [],
   },
@@ -48,7 +73,19 @@ export const definition = {
 
 type UpdateInput = Pick<
   UserProfile,
-  'firstName' | 'lastName' | 'phone' | 'buyerStatus' | 'preApproved' | 'preApprovalAmount' | 'preferredContactMethod'
+  | 'firstName'
+  | 'lastName'
+  | 'phone'
+  | 'buyerStatus'
+  | 'preApproved'
+  | 'preApprovalAmount'
+  | 'preferredContactMethod'
+  | 'firstTimeHomeBuyer'
+  | 'currentCity'
+  | 'currentState'
+  | 'desiredCity'
+  | 'desiredState'
+  | 'listingViewingPreference'
 >
 
 export async function execute(userId: string, input: UpdateInput): Promise<{ message: string }> {
@@ -62,6 +99,12 @@ export async function execute(userId: string, input: UpdateInput): Promise<{ mes
   if (input.preApproved !== undefined) updateFields.preApproved = input.preApproved
   if (input.preApprovalAmount !== undefined) updateFields.preApprovalAmount = input.preApprovalAmount
   if (input.preferredContactMethod !== undefined) updateFields.preferredContactMethod = input.preferredContactMethod
+  if (input.firstTimeHomeBuyer !== undefined) updateFields.firstTimeHomeBuyer = input.firstTimeHomeBuyer
+  if (input.currentCity !== undefined) updateFields.currentCity = input.currentCity
+  if (input.currentState !== undefined) updateFields.currentState = input.currentState
+  if (input.desiredCity !== undefined) updateFields.desiredCity = input.desiredCity
+  if (input.desiredState !== undefined) updateFields.desiredState = input.desiredState
+  if (input.listingViewingPreference !== undefined) updateFields.listingViewingPreference = input.listingViewingPreference
 
   const setExpressions = Object.keys(updateFields).map((k) => `#${k} = :${k}`)
   const expressionAttributeNames = Object.fromEntries(Object.keys(updateFields).map((k) => [`#${k}`, k]))

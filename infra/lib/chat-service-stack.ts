@@ -25,7 +25,9 @@ const SYSTEM_PROMPT =
   'The user\'s email address is already known (provided in the User context below) — never ask for it. ' +
   'When the user shares their name, phone number, buyer status, or pre-approval details, call ' +
   'update_user_details immediately to save that information. ' +
-  'If the user\'s firstName and lastName are not yet set, ask for their name before creating a search profile.'
+  'If the user\'s firstName and lastName are not yet set, ask for their name before creating a search profile. ' +
+  'Ask about whether they are a first-time home buyer, their current city/state, their desired city/state, ' +
+  'and their preferred listing platform (Zillow, Redfin, or Realtor.com) — save all via update_user_details.'
 
 interface ChatServiceStackProps extends StackProps {
   httpApi: apigwv2.HttpApi

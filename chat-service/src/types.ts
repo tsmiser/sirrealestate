@@ -38,6 +38,12 @@ export interface UserProfile {
   preApproved?: boolean
   preApprovalAmount?: number
   preferredContactMethod?: 'email' | 'phone'
+  firstTimeHomeBuyer?: boolean
+  currentCity?: string
+  currentState?: string
+  desiredCity?: string
+  desiredState?: string
+  listingViewingPreference?: 'zillow' | 'redfin' | 'realtor'
   searchProfiles: SearchProfile[]
   createdAt: string
   updatedAt: string
