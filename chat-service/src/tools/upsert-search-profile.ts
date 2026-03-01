@@ -1,9 +1,11 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { randomUUID } from 'crypto'
 import type { UserProfile, SearchProfile, SearchCriteria, NotificationPreferences } from '../types'
 
 const dynamo = new DynamoDBClient({})
+const lambdaClient = new LambdaClient({})
 
 export const definition = {
   name: 'upsert_search_profile',
@@ -83,6 +85,7 @@ export async function execute(userId: string, input: UpsertInput, userEmail?: st
 
   const profileId = input.profileId ?? randomUUID()
   const existingProfileIdx = userProfile.searchProfiles.findIndex((p) => p.profileId === profileId)
+  const wasMonitoring = existingProfileIdx !== -1 ? userProfile.searchProfiles[existingProfileIdx].monitoring : false
 
   const notificationPreferences: NotificationPreferences = {
     email: input.emailNotifications ?? true,
@@ -116,6 +119,19 @@ export async function execute(userId: string, input: UpsertInput, userEmail?: st
       Item: marshall(userProfile, { removeUndefinedValues: true }),
     }),
   )
+
+  // Trigger an immediate search when monitoring is newly enabled
+  const monitoringJustEnabled = profile.monitoring && !wasMonitoring
+  if (monitoringJustEnabled && process.env.SEARCH_WORKER_FUNCTION_NAME) {
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: process.env.SEARCH_WORKER_FUNCTION_NAME,
+        InvocationType: 'Event', // async fire-and-forget
+        Payload: Buffer.from(JSON.stringify({ userId, profileId })),
+      }),
+    )
+    console.log(`Triggered immediate search for user=${userId} profile=${profileId}`)
+  }
 
   const action = existingProfileIdx !== -1 ? 'updated' : 'created'
   return {

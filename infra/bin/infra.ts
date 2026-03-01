@@ -69,22 +69,6 @@ const sesStack = new SesStack(app, 'SirRealtor-Ses', {
   domainName: config.baseDomain,
 })
 
-const chatServiceStack = new ChatServiceStack(app, 'SirRealtor-Chat', {
-  env: prodEnv,
-  httpApi: apiStack.httpApi,
-  userPool: authStack.userPool,
-  userPoolClient: authStack.userPoolClient,
-  domainName: config.baseDomain,
-  userProfileTable: dataStack.userProfileTable,
-  searchResultsTable: dataStack.searchResultsTable,
-  notificationsTable: dataStack.notificationsTable,
-  viewingsTable: dataStack.viewingsTable,
-})
-chatServiceStack.addDependency(apiStack)
-chatServiceStack.addDependency(authStack)
-chatServiceStack.addDependency(dataStack)
-chatServiceStack.addDependency(sesStack)
-
 const searchWorkerStack = new SearchWorkerStack(app, 'SirRealtor-SearchWorker', {
   env: prodEnv,
   userProfileTable: dataStack.userProfileTable,
@@ -95,3 +79,21 @@ const searchWorkerStack = new SearchWorkerStack(app, 'SirRealtor-SearchWorker', 
 })
 searchWorkerStack.addDependency(dataStack)
 searchWorkerStack.addDependency(sesStack)
+
+const chatServiceStack = new ChatServiceStack(app, 'SirRealtor-Chat', {
+  env: prodEnv,
+  httpApi: apiStack.httpApi,
+  userPool: authStack.userPool,
+  userPoolClient: authStack.userPoolClient,
+  domainName: config.baseDomain,
+  userProfileTable: dataStack.userProfileTable,
+  searchResultsTable: dataStack.searchResultsTable,
+  notificationsTable: dataStack.notificationsTable,
+  viewingsTable: dataStack.viewingsTable,
+  searchWorkerLambda: searchWorkerStack.searchWorkerLambda,
+})
+chatServiceStack.addDependency(apiStack)
+chatServiceStack.addDependency(authStack)
+chatServiceStack.addDependency(dataStack)
+chatServiceStack.addDependency(sesStack)
+chatServiceStack.addDependency(searchWorkerStack)

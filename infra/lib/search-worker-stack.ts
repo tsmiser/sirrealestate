@@ -18,6 +18,8 @@ interface SearchWorkerStackProps extends StackProps {
 }
 
 export class SearchWorkerStack extends Stack {
+  public readonly searchWorkerLambda: NodejsFunction
+
   constructor(scope: Construct, id: string, props: SearchWorkerStackProps) {
     super(scope, id, props)
 
@@ -27,7 +29,7 @@ export class SearchWorkerStack extends Stack {
       description: 'Rentcast MLS API key for the search worker Lambda',
     })
 
-    const searchWorkerLambda = new NodejsFunction(this, 'SearchWorkerLambda', {
+    this.searchWorkerLambda = new NodejsFunction(this, 'SearchWorkerLambda', {
       entry: path.join(__dirname, '../../chat-service/src/search-worker.ts'),
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_22_X,
@@ -43,16 +45,16 @@ export class SearchWorkerStack extends Stack {
     })
 
     // DynamoDB permissions
-    props.userProfileTable.grantReadData(searchWorkerLambda)
-    props.searchResultsTable.grantReadWriteData(searchWorkerLambda)
-    props.notificationsTable.grantWriteData(searchWorkerLambda)
-    props.viewingsTable.grantReadWriteData(searchWorkerLambda)
+    props.userProfileTable.grantReadData(this.searchWorkerLambda)
+    props.searchResultsTable.grantReadWriteData(this.searchWorkerLambda)
+    props.notificationsTable.grantWriteData(this.searchWorkerLambda)
+    props.viewingsTable.grantReadWriteData(this.searchWorkerLambda)
 
     // Secrets Manager permission
-    rentcastSecret.grantRead(searchWorkerLambda)
+    rentcastSecret.grantRead(this.searchWorkerLambda)
 
     // SES permission to send from sirrealtor.com
-    searchWorkerLambda.addToRolePolicy(
+    this.searchWorkerLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['ses:SendEmail'],
         resources: [
@@ -65,7 +67,7 @@ export class SearchWorkerStack extends Stack {
     const schedulerRole = new iam_scheduler.Role(this, 'SearchWorkerSchedulerRole', {
       assumedBy: new iam_scheduler.ServicePrincipal('scheduler.amazonaws.com'),
     })
-    searchWorkerLambda.grantInvoke(schedulerRole)
+    this.searchWorkerLambda.grantInvoke(schedulerRole)
 
     // Daily schedule: 8:00 AM UTC
     new scheduler.CfnSchedule(this, 'DailySearchSchedule', {
@@ -74,7 +76,7 @@ export class SearchWorkerStack extends Stack {
       scheduleExpressionTimezone: 'UTC',
       flexibleTimeWindow: { mode: 'OFF' },
       target: {
-        arn: searchWorkerLambda.functionArn,
+        arn: this.searchWorkerLambda.functionArn,
         roleArn: schedulerRole.roleArn,
       },
     })

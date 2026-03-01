@@ -1,5 +1,6 @@
 import {
   DynamoDBClient,
+  GetItemCommand,
   ScanCommand,
   QueryCommand,
   BatchWriteItemCommand,
@@ -248,12 +249,35 @@ async function sendFeedbackRequests(): Promise<void> {
   }
 }
 
-export async function handler(): Promise<void> {
-  console.log('Search worker started')
+export async function handler(event?: { userId?: string; profileId?: string }): Promise<void> {
+  console.log('Search worker started', event ?? 'cron')
 
   const mls = await getMlsProvider()
 
-  // Scan all users with at least one monitored profile
+  // Targeted invocation: only process a specific user (and optionally a specific profile)
+  if (event?.userId) {
+    const item = await dynamo.send(
+      new GetItemCommand({
+        TableName: process.env.USER_PROFILE_TABLE!,
+        Key: { userId: { S: event.userId } },
+      }),
+    )
+    if (item.Item) {
+      const user = unmarshall(item.Item) as UserProfile
+      if (event.profileId) {
+        const profile = user.searchProfiles.find((p) => p.profileId === event.profileId)
+        if (profile?.monitoring) {
+          await processSearchProfile(user, profile, mls)
+        }
+      } else {
+        await processUserProfile(user, mls)
+      }
+    }
+    console.log('Search worker completed (targeted)')
+    return
+  }
+
+  // Cron path: scan all users with at least one monitored profile
   let lastKey: Record<string, unknown> | undefined
   do {
     const scanResult = await dynamo.send(

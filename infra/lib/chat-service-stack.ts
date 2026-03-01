@@ -38,6 +38,7 @@ interface ChatServiceStackProps extends StackProps {
   searchResultsTable: dynamodb.Table
   notificationsTable: dynamodb.Table
   viewingsTable: dynamodb.Table
+  searchWorkerLambda: lambda.IFunction
 }
 
 export class ChatServiceStack extends Stack {
@@ -68,6 +69,7 @@ export class ChatServiceStack extends Stack {
         ANTHROPIC_MODEL_ID,
         ANTHROPIC_API_KEY_SECRET_ARN: anthropicApiKeySecret.secretArn,
         SYSTEM_PROMPT,
+        SEARCH_WORKER_FUNCTION_NAME: props.searchWorkerLambda.functionName,
         ...tableEnv,
       },
       bundling: bundlingOptions,
@@ -81,6 +83,9 @@ export class ChatServiceStack extends Stack {
     props.searchResultsTable.grantReadData(chatLambda)
     props.notificationsTable.grantWriteData(chatLambda)
     props.viewingsTable.grantReadWriteData(chatLambda)
+
+    // Permission to invoke the search worker Lambda
+    props.searchWorkerLambda.grantInvoke(chatLambda)
 
     // SES permission for schedule_viewing tool
     chatLambda.addToRolePolicy(
