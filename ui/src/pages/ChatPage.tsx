@@ -15,6 +15,7 @@ import { chat } from '@/services/api'
 import ChatMessage from '@/pages/chat/chat-message'
 import { Conversation } from '@/pages/chat/types'
 import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
+import { useUserProfile } from '@/hooks/useUserProfile'
 import NiArrowOutUp from '@/icons/nexture/ni-arrow-out-up'
 import NiMicrophone from '@/icons/nexture/ni-microphone'
 import NiSendRight from '@/icons/nexture/ni-send-right'
@@ -37,6 +38,13 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
+  const { profile, refetch: refetchProfile } = useUserProfile()
+
+  useEffect(() => { refetchProfile() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const userInitials = profile?.firstName && profile?.lastName
+    ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase()
+    : profile?.email ? profile.email.slice(0, 2).toUpperCase() : 'ME'
 
   const handleSpeechResult = useCallback((transcript: string) => {
     setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript))
@@ -129,7 +137,7 @@ export default function ChatPage() {
   }, [conversation])
 
   return (
-    <Box className="relative flex h-full min-h-[calc(100vh-12rem)] flex-col items-center gap-5">
+    <Box className="relative flex h-full min-h-[calc(100vh-12rem)] flex-col items-center gap-5 bg-black/[0.03]">
       {/* Conversation area */}
       <Box
         className={cn(
@@ -167,6 +175,7 @@ export default function ChatPage() {
               conversation={msg}
               onAnimationStart={() => setIsAnimating(true)}
               onAnimationEnd={() => setIsAnimating(false)}
+              userInitials={userInitials}
             />
           ))
         )}

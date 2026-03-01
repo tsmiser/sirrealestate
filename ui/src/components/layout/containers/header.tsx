@@ -1,18 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, Box, Button, Menu, MenuItem, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
 import logo from '@/assets/logo.png'
 import NiMenuSplit from '@/icons/nexture/ni-menu-split'
 import { useAuth } from '@/hooks/useAuth'
+import { useUserProfile } from '@/hooks/useUserProfile'
 
 export default function Header() {
   const navigate = useNavigate()
   const { toggleSidebar } = useLayoutContext()
   const { email, signOut } = useAuth()
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
+  const { profile, refetch: refetchProfile } = useUserProfile()
 
-  const initials = email ? email.slice(0, 2).toUpperCase() : 'SR'
+  useEffect(() => { refetchProfile() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const initials = profile?.firstName && profile?.lastName
+    ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase()
+    : email ? email.slice(0, 2).toUpperCase() : 'SR'
 
   return (
     <Box className="mui-fixed fixed z-20 h-20 w-full" component="header">
