@@ -28,22 +28,38 @@ export function viewingRequestToAgentEmail(
   viewing: Viewing,
   buyerEmail: string,
   buyerName: string,
+  availabilitySlots: string[],
 ): { subject: string; html: string } {
+  const baseUrl = 'https://app.sirrealtor.com/viewing-response'
+
+  const slotButtons = availabilitySlots
+    .map((slot, i) => {
+      const url = `${baseUrl}?viewingId=${encodeURIComponent(viewing.viewingId)}&slot=${i}`
+      const label = new Date(slot).toLocaleString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+      })
+      return `<a href="${url}" style="display:block;background:#1a56db;color:white;padding:12px 20px;border-radius:6px;text-decoration:none;margin-bottom:10px;font-size:15px">${label}</a>`
+    })
+    .join('\n  ')
+
+  const noneUrl = `${baseUrl}?viewingId=${encodeURIComponent(viewing.viewingId)}&slot=none`
+
   const subject = `Viewing Request: ${viewing.listingAddress}`
   const html = `
 <!DOCTYPE html>
 <html>
 <body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
   <h2>Viewing Request via SirRealtor</h2>
-  <p>A buyer has requested to view your listing:</p>
+  <p>A buyer has requested to view your listing. Please select a time that works:</p>
   <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0">
     <p><strong>Property:</strong> ${viewing.listingAddress}</p>
-    <p><strong>Proposed Time:</strong> ${viewing.proposedDateTime ?? 'Flexible — please suggest a time'}</p>
-    <p><strong>Buyer Name:</strong> ${buyerName}</p>
-    <p><strong>Buyer Email:</strong> ${buyerEmail}</p>
+    <p><strong>Buyer:</strong> ${buyerName} &lt;${buyerEmail}&gt;</p>
   </div>
-  <p>Please reply to this email or contact the buyer directly to confirm.</p>
-  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com)</p>
+  <p><strong>Available times — click to confirm:</strong></p>
+  ${slotButtons}
+  <a href="${noneUrl}" style="display:block;background:#f3f4f6;color:#374151;padding:12px 20px;border-radius:6px;text-decoration:none;margin-bottom:10px;font-size:15px;border:1px solid #d1d5db">None of these times work</a>
+  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com). Clicking a time confirms it directly — no login required.</p>
 </body>
 </html>`
   return { subject, html }

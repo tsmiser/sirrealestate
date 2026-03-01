@@ -22,6 +22,8 @@ const SYSTEM_PROMPT =
   'and call get_pending_feedback to check for any viewings needing feedback. ' +
   'Be concise, proactive, and data-driven. When the user describes what they want, save a search ' +
   'profile and ask if they want to enable daily monitoring. ' +
+  'Before scheduling a viewing, always ask the user for at least two available date/time options ' +
+  'to offer the seller\'s agent — never call schedule_viewing without availabilitySlots. ' +
   'The user\'s email address is already known (provided in the User context below) — never ask for it. ' +
   'When the user shares their name, phone number, buyer status, or pre-approval details, call ' +
   'update_user_details immediately to save that information. ' +
@@ -110,6 +112,7 @@ export class ChatServiceStack extends Stack {
     props.userProfileTable.grantReadData(dataLambda)
     props.searchResultsTable.grantReadData(dataLambda)
     props.viewingsTable.grantReadData(dataLambda)
+    props.viewingsTable.grantWriteData(dataLambda)
 
     const cognitoAuthorizer = new HttpJwtAuthorizer(
       'CognitoAuthorizer',
@@ -149,6 +152,13 @@ export class ChatServiceStack extends Stack {
       routeKey: apigwv2.HttpRouteKey.with('/viewings', apigwv2.HttpMethod.GET),
       integration: dataIntegration,
       authorizer: cognitoAuthorizer,
+    })
+
+    // Unauthenticated — seller's agent clicks a link from email
+    new apigwv2.HttpRoute(this, 'ViewingResponseRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/viewing-response', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
     })
 
     new CfnOutput(this, 'AnthropicModelId', {

@@ -5,6 +5,7 @@ import ChatPage from '@/pages/ChatPage'
 import LoginPage from '@/pages/LoginPage'
 import SignUpPage from '@/pages/SignUpPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ViewingResponsePage from '@/pages/ViewingResponsePage'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/viewing-response" element={<ViewingResponsePage />} />
         <Route
           element={
             <AuthGuard>

@@ -108,7 +108,10 @@ export interface Viewing {
   agentEmail?: string
   agentName?: string
   requestedAt: string
-  proposedDateTime?: string
+  availabilitySlots?: string[]   // buyer's offered timeslots
+  proposedDateTime?: string      // set when agent confirms a slot
+  agentSelectedSlot?: string     // confirmed slot value, or 'none'
+  agentRespondedAt?: string
   status: ViewingStatus
   feedback?: ViewingFeedback
   feedbackRequestedAt?: string

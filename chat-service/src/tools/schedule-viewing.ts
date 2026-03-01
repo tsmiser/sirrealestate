@@ -26,19 +26,20 @@ export const definition = {
         type: 'string',
         description: 'The search profile ID that found this listing.',
       },
-      proposedDateTime: {
-        type: 'string',
-        description: 'Proposed date and time for the viewing in ISO 8601 format, e.g. "2026-03-15T14:00:00".',
+      availabilitySlots: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Two or more date/time options the buyer is available, in ISO 8601 format, e.g. ["2026-03-15T14:00:00", "2026-03-16T10:00:00"]. Collect these from the user before calling this tool.',
       },
     },
-    required: ['listingId', 'profileId'],
+    required: ['listingId', 'profileId', 'availabilitySlots'],
   },
 }
 
 interface ScheduleViewingInput {
   listingId: string
   profileId: string
-  proposedDateTime?: string
+  availabilitySlots: string[]
 }
 
 export async function execute(
@@ -89,7 +90,7 @@ export async function execute(
     agentEmail,
     agentName,
     requestedAt: now,
-    proposedDateTime: input.proposedDateTime,
+    availabilitySlots: input.availabilitySlots,
     status: 'requested',
   }
 
@@ -106,7 +107,7 @@ export async function execute(
 
   // Email the seller's agent if we have their contact
   if (agentEmail) {
-    const { subject, html } = viewingRequestToAgentEmail(viewing, userEmail, buyerName)
+    const { subject, html } = viewingRequestToAgentEmail(viewing, userEmail, buyerName, input.availabilitySlots)
     await ses.send(
       new SendEmailCommand({
         Source: 'noreply@sirrealtor.com',

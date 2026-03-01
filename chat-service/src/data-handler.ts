@@ -1,7 +1,7 @@
-import { DynamoDBClient, GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient, GetItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 import type { AttributeValue } from '@aws-sdk/client-dynamodb'
-import { unmarshall } from '@aws-sdk/util-dynamodb'
-import type { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda'
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
 import type { UserProfile, SearchResult, Viewing } from './types'
 
 const dynamo = new DynamoDBClient({})
@@ -51,6 +51,53 @@ async function getSearchResults(userId: string): Promise<APIGatewayProxyResultV2
   return json(200, { results, grouped })
 }
 
+async function recordViewingResponse(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const { viewingId, slot } = event.queryStringParameters ?? {}
+  if (!viewingId || slot === undefined) {
+    return json(400, { error: 'Missing viewingId or slot' })
+  }
+
+  // Scan for the viewing by viewingId (table is small; no GSI needed)
+  const scanResult = await dynamo.send(
+    new ScanCommand({
+      TableName: process.env.VIEWINGS_TABLE!,
+      FilterExpression: 'viewingId = :vid',
+      ExpressionAttributeValues: { ':vid': { S: viewingId } },
+    }),
+  )
+
+  const item = scanResult.Items?.[0]
+  if (!item) return json(404, { error: 'Viewing not found' })
+
+  const viewing = unmarshall(item) as Viewing
+  const now = new Date().toISOString()
+
+  const isNone = slot === 'none'
+  const selectedSlot = isNone ? 'none' : (viewing.availabilitySlots?.[parseInt(slot)] ?? 'none')
+  const newStatus = isNone ? 'requested' : 'confirmed'
+
+  const updateExpr = isNone
+    ? 'SET agentSelectedSlot = :slot, agentRespondedAt = :now, #s = :status'
+    : 'SET agentSelectedSlot = :slot, agentRespondedAt = :now, #s = :status, proposedDateTime = :dt'
+
+  await dynamo.send(
+    new UpdateItemCommand({
+      TableName: process.env.VIEWINGS_TABLE!,
+      Key: marshall({ userId: viewing.userId, viewingId: viewing.viewingId }),
+      UpdateExpression: updateExpr,
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: {
+        ':slot': { S: selectedSlot },
+        ':now': { S: now },
+        ':status': { S: newStatus },
+        ...(!isNone ? { ':dt': { S: selectedSlot } } : {}),
+      },
+    }),
+  )
+
+  return json(200, { ok: true })
+}
+
 async function getViewings(userId: string): Promise<APIGatewayProxyResultV2> {
   const result = await dynamo.send(
     new QueryCommand({
@@ -68,12 +115,21 @@ async function getViewings(userId: string): Promise<APIGatewayProxyResultV2> {
 }
 
 export async function handler(
-  event: APIGatewayProxyEventV2WithJWTAuthorizer,
+  event: APIGatewayProxyEventV2,
 ): Promise<APIGatewayProxyResultV2> {
-  const userId = event.requestContext.authorizer.jwt.claims['sub'] as string
   const path = event.rawPath
 
   try {
+    // Unauthenticated routes
+    if (path === '/viewing-response') return recordViewingResponse(event)
+
+    // Authenticated routes — extract userId from JWT claims
+    const claims = (event.requestContext as unknown as {
+      authorizer?: { jwt?: { claims?: Record<string, unknown> } }
+    }).authorizer?.jwt?.claims
+    const userId = claims?.['sub'] as string | undefined
+    if (!userId) return json(401, { error: 'Unauthorized' })
+
     if (path === '/profile') return getProfile(userId)
     if (path === '/search-results') return getSearchResults(userId)
     if (path === '/viewings') return getViewings(userId)
