@@ -140,10 +140,10 @@ export default function ChatPage() {
         {conversation.length === 0 ? (
           <Box className="flex flex-col items-center gap-4">
             <Typography
-              variant="h6"
+              variant="body1"
               className="from-primary-dark via-primary to-primary-light inline-block max-w-lg bg-linear-to-r bg-clip-text text-center text-transparent"
             >
-              Hi there, I'm Sir Realtor. I'm here to help you find your next home. I'll serve as your virtual real estate agent at a fraction of the cost you'd normally pay. First just describe what you're looking for and I'll ask some questions to help further refine the details.
+              Hello, I'm Sir Realtor and I'll be your virtual real estate concierge. Let's chat about what you're looking for in a home.
             </Typography>
 
             <Box className="mt-2 flex flex-col items-center gap-1">
@@ -199,13 +199,13 @@ export default function ChatPage() {
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
               />
-              <Box className="absolute end-0 flex flex-row">
+              <Box className="absolute bottom-0 end-0 flex flex-row sm:top-0 sm:bottom-auto">
                 <Tooltip
                   title={!isSupported ? 'Voice input not supported in this browser' : isListening ? 'Stop recording' : 'Voice'}
                   arrow
                   enterDelay={isListening ? 0 : 2000}
                 >
-                  <span>
+                  <span className="hidden sm:inline-flex">
                     <Button
                       className={cn('icon-only', isListening && 'animate-pulse')}
                       size="medium"
@@ -231,7 +231,7 @@ export default function ChatPage() {
                     className="icon-only ms-1"
                     size="medium"
                     color="primary"
-                    variant="pastel"
+                    variant="contained"
                     onClick={() => sendMessage(inputValue)}
                     disabled={isLoading || !inputValue.trim()}
                     startIcon={<NiSendRight size="medium" />}
