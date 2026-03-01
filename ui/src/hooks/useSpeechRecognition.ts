@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+interface SpeechRecognitionInstance {
+  lang: string
+  interimResults: boolean
+  maxAlternatives: number
+  continuous: boolean
+  onstart: (() => void) | null
+  onend: (() => void) | null
+  onerror: ((e: { error: string }) => void) | null
+  onresult: ((e: { results: { 0: { transcript: string } }[] }) => void) | null
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+
 interface UseSpeechRecognitionOptions {
   onResult: (transcript: string) => void
   onError?: (error: string) => void
@@ -12,11 +26,16 @@ export function useSpeechRecognition({
   lang = 'en-US',
 }: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
 
-  const isSupported =
-    typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const SpeechRecognitionAPI: (new () => SpeechRecognitionInstance) | undefined =
+    typeof window !== 'undefined'
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
+      : undefined
+
+  const isSupported = SpeechRecognitionAPI != null
 
   useEffect(() => {
     return () => {
@@ -25,12 +44,9 @@ export function useSpeechRecognition({
   }, [])
 
   const startListening = useCallback(() => {
-    if (!isSupported) return
+    if (!SpeechRecognitionAPI) return
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
-    const recognition: SpeechRecognition = new SpeechRecognitionAPI()
-
+    const recognition = new SpeechRecognitionAPI()
     recognition.lang = lang
     recognition.interimResults = false
     recognition.maxAlternatives = 1
@@ -41,14 +57,13 @@ export function useSpeechRecognition({
 
     recognition.onerror = (e) => {
       setIsListening(false)
-      // 'no-speech' and 'aborted' are expected — don't surface them as errors
       if (e.error !== 'no-speech' && e.error !== 'aborted') {
         onError?.(e.error)
       }
     }
 
     recognition.onresult = (e) => {
-      const transcript = Array.from(e.results)
+      const transcript = e.results
         .map((r) => r[0].transcript)
         .join(' ')
         .trim()
@@ -57,7 +72,7 @@ export function useSpeechRecognition({
 
     recognitionRef.current = recognition
     recognition.start()
-  }, [isSupported, lang, onResult, onError])
+  }, [SpeechRecognitionAPI, lang, onResult, onError])
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop()
