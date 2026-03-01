@@ -277,16 +277,12 @@ export async function handler(event?: { userId?: string; profileId?: string }): 
     return
   }
 
-  // Cron path: scan all users with at least one monitored profile
+  // Cron path: scan all users; processUserProfile skips those with no monitored profiles
   let lastKey: Record<string, unknown> | undefined
   do {
     const scanResult = await dynamo.send(
       new ScanCommand({
         TableName: process.env.USER_PROFILE_TABLE!,
-        FilterExpression: 'contains(searchProfiles, :monitorTrue)',
-        ExpressionAttributeValues: {
-          ':monitorTrue': { S: 'monitoring' },  // rough filter; full check done in processUserProfile
-        },
         ExclusiveStartKey: lastKey
           ? marshall(lastKey as Record<string, unknown>)
           : undefined,
