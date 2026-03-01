@@ -9,10 +9,10 @@ import { useAuth } from '@/hooks/useAuth'
 export default function Header() {
   const navigate = useNavigate()
   const { toggleSidebar } = useLayoutContext()
-  const { user, signOut } = useAuth()
+  const { email, signOut } = useAuth()
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
 
-  const initials = user?.username?.slice(0, 2).toUpperCase() ?? 'SR'
+  const initials = email ? email.slice(0, 2).toUpperCase() : 'SR'
 
   return (
     <Box className="mui-fixed fixed z-20 h-20 w-full" component="header">
@@ -55,7 +55,7 @@ export default function Header() {
         >
           <MenuItem disabled>
             <Typography variant="body2" className="text-text-secondary">
-              {user?.username}
+              {email}
             </Typography>
           </MenuItem>
           <MenuItem

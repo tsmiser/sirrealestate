@@ -21,7 +21,11 @@ const SYSTEM_PROMPT =
   'At the start of each conversation, call get_user_profile to see what the user already has set up, ' +
   'and call get_pending_feedback to check for any viewings needing feedback. ' +
   'Be concise, proactive, and data-driven. When the user describes what they want, save a search ' +
-  'profile and ask if they want to enable daily monitoring.'
+  'profile and ask if they want to enable daily monitoring. ' +
+  'The user\'s email address is already known (provided in the User context below) — never ask for it. ' +
+  'When the user shares their name, phone number, buyer status, or pre-approval details, call ' +
+  'update_user_details immediately to save that information. ' +
+  'If the user\'s firstName and lastName are not yet set, ask for their name before creating a search profile.'
 
 interface ChatServiceStackProps extends StackProps {
   httpApi: apigwv2.HttpApi

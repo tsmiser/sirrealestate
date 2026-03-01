@@ -1,9 +1,12 @@
 // ci trigger
 import Anthropic from '@anthropic-ai/sdk'
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { marshall } from '@aws-sdk/util-dynamodb'
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 import type { MessageParam, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages'
 import type { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda'
 import * as GetUserProfile from './tools/get-user-profile'
+import * as UpdateUserDetails from './tools/update-user-details'
 import * as UpsertSearchProfile from './tools/upsert-search-profile'
 import * as GetSearchResults from './tools/get-search-results'
 import * as ScheduleViewing from './tools/schedule-viewing'
@@ -12,6 +15,7 @@ import * as SaveViewingFeedback from './tools/save-viewing-feedback'
 import type { ConversationMessage } from './types'
 
 const secretsManager = new SecretsManagerClient({})
+const dynamo = new DynamoDBClient({})
 let anthropic: Anthropic | null = null
 
 async function getClient(): Promise<Anthropic> {
@@ -25,6 +29,7 @@ async function getClient(): Promise<Anthropic> {
 
 const TOOLS: Anthropic.Tool[] = [
   GetUserProfile.definition,
+  UpdateUserDetails.definition,
   UpsertSearchProfile.definition,
   GetSearchResults.definition,
   ScheduleViewing.definition,
@@ -41,8 +46,10 @@ async function executeTool(
   switch (name) {
     case 'get_user_profile':
       return GetUserProfile.execute(userId)
+    case 'update_user_details':
+      return UpdateUserDetails.execute(userId, input as Parameters<typeof UpdateUserDetails.execute>[1])
     case 'upsert_search_profile':
-      return UpsertSearchProfile.execute(userId, input as Parameters<typeof UpsertSearchProfile.execute>[1])
+      return UpsertSearchProfile.execute(userId, input as Parameters<typeof UpsertSearchProfile.execute>[1], userEmail)
     case 'get_search_results':
       return GetSearchResults.execute(userId, input as Parameters<typeof GetSearchResults.execute>[1])
     case 'schedule_viewing':
@@ -87,6 +94,18 @@ export async function handler(
   const client = await getClient()
   const conversationMessages: MessageParam[] = messages as MessageParam[]
 
+  // Ensure a profile row exists before the tool loop so get_user_profile always returns real data.
+  const now = new Date().toISOString()
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.USER_PROFILE_TABLE!,
+      Item: marshall({ userId, email: userEmail, searchProfiles: [], createdAt: now, updatedAt: now }),
+      ConditionExpression: 'attribute_not_exists(userId)',
+    }),
+  ).catch(() => { /* item already exists — ignore ConditionalCheckFailedException */ })
+
+  const systemPrompt = `${process.env.SYSTEM_PROMPT!}\n\nUser context: email=${userEmail}`
+
   try {
     let reply = ''
     let hasToolUse = false
@@ -96,7 +115,7 @@ export async function handler(
       const response = await client.messages.create({
         model: process.env.ANTHROPIC_MODEL_ID!,
         max_tokens: 1024,
-        system: process.env.SYSTEM_PROMPT!,
+        system: systemPrompt,
         tools: TOOLS,
         messages: conversationMessages,
       })

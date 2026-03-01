@@ -60,7 +60,7 @@ interface UpsertInput {
   isDefault?: boolean
 }
 
-export async function execute(userId: string, input: UpsertInput): Promise<{ profileId: string; message: string }> {
+export async function execute(userId: string, input: UpsertInput, userEmail?: string): Promise<{ profileId: string; message: string }> {
   const now = new Date().toISOString()
 
   // Load existing profile or create new one
@@ -75,7 +75,7 @@ export async function execute(userId: string, input: UpsertInput): Promise<{ pro
     ? (unmarshall(existing.Item) as UserProfile)
     : {
         userId,
-        email: '',
+        email: userEmail ?? '',
         searchProfiles: [],
         createdAt: now,
         updatedAt: now,

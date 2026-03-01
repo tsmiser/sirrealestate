@@ -34,6 +34,10 @@ export interface UserProfile {
   firstName?: string
   lastName?: string
   phone?: string
+  buyerStatus?: 'browsing' | 'actively_looking' | 'ready_to_offer'
+  preApproved?: boolean
+  preApprovalAmount?: number
+  preferredContactMethod?: 'email' | 'phone'
   searchProfiles: SearchProfile[]
   createdAt: string
   updatedAt: string
