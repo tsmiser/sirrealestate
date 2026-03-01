@@ -208,7 +208,7 @@ export default function ChatPage() {
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
               />
-              <Box className="absolute bottom-0 end-0 flex flex-row sm:top-0 sm:bottom-auto">
+              <Box className="absolute bottom-0 end-0 flex flex-row gap-1 sm:top-0 sm:bottom-auto">
                 <Tooltip
                   title={!isSupported ? 'Voice input not supported in this browser' : isListening ? 'Stop recording' : 'Voice'}
                   arrow
@@ -237,7 +237,7 @@ export default function ChatPage() {
                 </Tooltip>
                 <Tooltip title="Send" arrow enterDelay={2000}>
                   <Button
-                    className="icon-only ms-1"
+                    className="icon-only"
                     size="medium"
                     color="primary"
                     variant="contained"
