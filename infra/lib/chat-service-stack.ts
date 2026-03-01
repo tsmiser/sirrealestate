@@ -114,6 +114,16 @@ export class ChatServiceStack extends Stack {
     props.viewingsTable.grantReadData(dataLambda)
     props.viewingsTable.grantWriteData(dataLambda)
 
+    // SES permission for buyer notification on agent response
+    dataLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ses:SendEmail'],
+        resources: [
+          `arn:aws:ses:${this.region}:${this.account}:identity/${props.domainName}`,
+        ],
+      }),
+    )
+
     const cognitoAuthorizer = new HttpJwtAuthorizer(
       'CognitoAuthorizer',
       `https://cognito-idp.${this.region}.amazonaws.com/${props.userPool.userPoolId}`,

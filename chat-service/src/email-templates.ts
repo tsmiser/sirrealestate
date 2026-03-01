@@ -92,6 +92,53 @@ export function viewingConfirmationToBuyerEmail(
   return { subject, html }
 }
 
+export function viewingAgentResponseToBuyerEmail(
+  viewing: Viewing,
+  confirmed: boolean,
+  chatUrl: string,
+): { subject: string; html: string } {
+  if (confirmed) {
+    const subject = `Viewing Confirmed: ${viewing.listingAddress}`
+    const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2 style="color:#1a56db">Your Viewing is Confirmed!</h2>
+  <p>${viewing.agentName ?? 'The seller\'s agent'} has accepted your viewing request.</p>
+  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0">
+    <p><strong>Property:</strong> ${viewing.listingAddress}</p>
+    <p><strong>Confirmed Time:</strong> ${new Date(viewing.agentSelectedSlot!).toLocaleString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+    })}</p>
+    ${viewing.agentName ? `<p><strong>Agent:</strong> ${viewing.agentName}</p>` : ''}
+  </div>
+  <a href="${chatUrl}" style="background:#1a56db;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
+    Open Chat →
+  </a>
+  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com)</p>
+</body>
+</html>`
+    return { subject, html }
+  }
+
+  const subject = `Viewing Update: ${viewing.listingAddress}`
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2>None of Your Proposed Times Worked</h2>
+  <p>${viewing.agentName ?? 'The seller\'s agent'} was unable to confirm any of your proposed times for <strong>${viewing.listingAddress}</strong>.</p>
+  <p>You may want to reach out to the agent directly to find a time that works, or chat with SirRealtor to explore other options.</p>
+  <a href="${chatUrl}" style="background:#1a56db;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
+    Open Chat →
+  </a>
+  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com)</p>
+</body>
+</html>`
+  return { subject, html }
+}
+
 export function viewingFeedbackRequestEmail(
   viewing: Viewing,
   chatUrl: string,

@@ -1,10 +1,13 @@
 import { DynamoDBClient, GetItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 import type { AttributeValue } from '@aws-sdk/client-dynamodb'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
 import type { UserProfile, SearchResult, Viewing } from './types'
+import { viewingAgentResponseToBuyerEmail } from './email-templates'
 
 const dynamo = new DynamoDBClient({})
+const ses = new SESClient({})
 
 function json(statusCode: number, body: unknown): APIGatewayProxyResultV2 {
   return {
@@ -94,6 +97,32 @@ async function recordViewingResponse(event: APIGatewayProxyEventV2): Promise<API
       },
     }),
   )
+
+  // Notify the buyer — look up their email from UserProfile
+  const profileResult = await dynamo.send(
+    new GetItemCommand({
+      TableName: process.env.USER_PROFILE_TABLE!,
+      Key: { userId: { S: viewing.userId } },
+      ProjectionExpression: 'email',
+    }),
+  )
+  const buyerEmail = profileResult.Item ? (unmarshall(profileResult.Item) as UserProfile).email : undefined
+
+  if (buyerEmail) {
+    const updatedViewing: Viewing = { ...viewing, agentSelectedSlot: selectedSlot }
+    const chatUrl = 'https://app.sirrealtor.com/chat'
+    const { subject, html } = viewingAgentResponseToBuyerEmail(updatedViewing, !isNone, chatUrl)
+    await ses.send(
+      new SendEmailCommand({
+        Source: 'noreply@sirrealtor.com',
+        Destination: { ToAddresses: [buyerEmail] },
+        Message: {
+          Subject: { Data: subject },
+          Body: { Html: { Data: html } },
+        },
+      }),
+    )
+  }
 
   return json(200, { ok: true })
 }
