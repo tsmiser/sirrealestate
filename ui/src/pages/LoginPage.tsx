@@ -18,7 +18,7 @@ import {
   Typography,
 } from '@mui/material'
 import MuiLayerOverride from '@/theme/mui-layer-override'
-import knightLogo from '@/assets/knight.png'
+import logo from '@/assets/logo.png'
 import NiEyeClose from '@/icons/nexture/ni-eye-close'
 import NiEyeOpen from '@/icons/nexture/ni-eye-open'
 
@@ -59,8 +59,11 @@ export default function LoginPage() {
       <Box className="bg-waves flex min-h-screen w-full items-center justify-center bg-cover bg-center p-4">
         <Paper elevation={3} className="bg-background-paper shadow-darker-xs w-lg max-w-full rounded-4xl py-14">
           <Box className="flex flex-col gap-10 px-8 sm:px-14">
-            <Box className="flex justify-center">
-              <img src={knightLogo} alt="SirRealtor — your friendly real estate knight" className="w-56 h-auto" />
+            <Box className="flex flex-col items-center gap-2">
+              <img src={logo} alt="Sir Realtor" className="w-48 h-auto" />
+              <Typography variant="h5" className="font-heading font-bold tracking-tight text-primary">
+                Sir Realtor
+              </Typography>
             </Box>
 
             <Box
