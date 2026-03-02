@@ -1,13 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Divider,
-  Typography,
-} from '@mui/material'
+import { Box, Divider, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
 import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
 import NiMessage from '@/icons/nexture/ni-message'
@@ -28,6 +21,49 @@ import { useViewings } from '@/hooks/useViewings'
 import { useDocuments } from '@/hooks/useDocuments'
 import { cn } from '@/lib/utils'
 
+function SidebarSection({
+  title,
+  icon,
+  defaultOpen = false,
+  contentClassName,
+  children,
+}: {
+  title: string
+  icon: React.ReactNode
+  defaultOpen?: boolean
+  contentClassName?: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full cursor-pointer items-center gap-1 rounded-xl px-2 py-2 text-left hover:bg-grey-50"
+        style={{ background: 'none', border: 'none' }}
+      >
+        <NiChevronRightSmall
+          size="small"
+          className={cn('shrink-0 transition-transform', open && 'rotate-90')}
+        />
+        <Box className="flex items-center gap-2">
+          {icon}
+          <Typography variant="h6" className="text-primary text-sm font-semibold">
+            {title}
+          </Typography>
+        </Box>
+      </button>
+      {open && (
+        <div className={contentClassName ?? 'px-2 pb-3 pt-0'}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LeftMenu() {
   const { sidebarOpen, sidebarWidth } = useLayoutContext()
   const { registerProfileRefetch, registerSearchResultsRefetch, registerDocumentsRefetch } = useSidebarRefresh()
@@ -36,7 +72,6 @@ export default function LeftMenu() {
   const { viewings, refetch: refetchViewings } = useViewings()
   const { documents, refetch: refetchDocuments } = useDocuments()
 
-  // Register refetch callbacks so ChatPage can trigger them
   useEffect(() => {
     registerProfileRefetch(refetchProfile)
   }, [registerProfileRefetch, refetchProfile])
@@ -49,7 +84,6 @@ export default function LeftMenu() {
     registerDocumentsRefetch(refetchDocuments)
   }, [registerDocumentsRefetch, refetchDocuments])
 
-  // Initial data fetch when sidebar opens
   useEffect(() => {
     if (!sidebarOpen) return
     refetchProfile()
@@ -66,7 +100,7 @@ export default function LeftMenu() {
       style={{ width: sidebarOpen ? `${sidebarWidth}px` : '0px' }}
     >
       <Box
-        className="flex min-h-0 h-full flex-col gap-0.5 overflow-y-auto px-4 py-2.5"
+        className="flex h-full min-h-0 flex-col gap-0.5 overflow-y-auto px-4 py-2.5"
         style={{ width: `${sidebarWidth}px` }}
       >
         {/* Chat nav link */}
@@ -89,173 +123,73 @@ export default function LeftMenu() {
 
         <Divider className="my-1" />
 
-        {/* My Profile section */}
-        <Accordion
-          defaultExpanded
-          elevation={0}
-          disableGutters
-          className="before:hidden"
-          sx={{ backgroundColor: 'transparent' }}
+        <SidebarSection
+          title="My Profile"
+          icon={<NiUser size="small" />}
+          defaultOpen
         >
-          <AccordionSummary
-            expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-            className="min-h-0 px-2 py-2"
-            sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
-          >
-            <Box className="flex items-center gap-2">
-              <NiUser size="small" />
-              <Typography variant="h6" className="text-primary text-sm font-semibold">
-                My Profile
-              </Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails className="px-2 pb-3 pt-0">
-            <ProfilePanel profile={profile} />
-          </AccordionDetails>
-        </Accordion>
+          <ProfilePanel profile={profile} />
+        </SidebarSection>
 
-        {/* My Searches section */}
-        <Accordion
-          defaultExpanded
-          elevation={0}
-          disableGutters
-          className="before:hidden"
-          sx={{ backgroundColor: 'transparent' }}
+        <SidebarSection
+          title="My Searches"
+          icon={<NiSearch size="small" />}
+          defaultOpen
+          contentClassName="flex flex-col gap-1 px-2 pb-3 pt-0"
         >
-          <AccordionSummary
-            expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-            className="min-h-0 px-2 py-2"
-            sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
-          >
-            <Box className="flex items-center gap-2">
-              <NiSearch size="small" />
-              <Typography variant="h6" className="text-primary text-sm font-semibold">
-                My Searches
-              </Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails className="flex flex-col gap-1 px-2 pb-3 pt-0">
-            {!profile || profile.searchProfiles.length === 0 ? (
-              <Typography variant="caption" className="text-text-secondary px-2.5 italic">
-                Start a search in chat →
-              </Typography>
-            ) : (
-              profile.searchProfiles.map((sp) => (
-                <SearchProfileCard
-                  key={sp.profileId}
-                  profile={sp}
-                  results={grouped[sp.profileId] ?? []}
-                />
-              ))
-            )}
-          </AccordionDetails>
-        </Accordion>
-
-        {/* My Documents section */}
-        <Accordion
-          elevation={0}
-          disableGutters
-          className="before:hidden"
-          sx={{ backgroundColor: 'transparent' }}
-        >
-          <AccordionSummary
-            expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-            className="min-h-0 px-2 py-2"
-            sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
-          >
-            <Box className="flex items-center gap-2">
-              <NiListSquare size="small" />
-              <Typography variant="h6" className="text-primary text-sm font-semibold">
-                My Documents
-              </Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails className="px-2 pb-3 pt-0">
-            <DocumentPanel documentList={documents} />
-          </AccordionDetails>
-        </Accordion>
-
-        {/* My Viewings section */}
-        <Accordion
-          elevation={0}
-          disableGutters
-          className="before:hidden"
-          sx={{ backgroundColor: 'transparent' }}
-        >
-          <AccordionSummary
-            expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-            className="min-h-0 px-2 py-2"
-            sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
-          >
-            <Box className="flex items-center gap-2">
-              <NiCalendar size="small" />
-              <Typography variant="h6" className="text-primary text-sm font-semibold">
-                My Viewings
-              </Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails className="flex flex-col gap-1.5 px-2 pb-3 pt-0">
-            {viewings.length === 0 ? (
-              <Typography variant="caption" className="text-text-secondary px-2.5 italic">
-                Schedule a viewing through chat →
-              </Typography>
-            ) : (
-              viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)
-            )}
-          </AccordionDetails>
-        </Accordion>
-
-        {/* My Offers section (placeholder) */}
-        <Accordion
-          elevation={0}
-          disableGutters
-          className="before:hidden"
-          sx={{ backgroundColor: 'transparent' }}
-        >
-          <AccordionSummary
-            expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-            className="min-h-0 px-2 py-2"
-            sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
-          >
-            <Box className="flex items-center gap-2">
-              <NiDuplicate size="small" />
-              <Typography variant="h6" className="text-primary text-sm font-semibold">
-                My Offers
-              </Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails className="px-2 pb-3 pt-0">
+          {!profile || profile.searchProfiles.length === 0 ? (
             <Typography variant="caption" className="text-text-secondary px-2.5 italic">
-              Coming soon
+              Start a search in chat →
             </Typography>
-          </AccordionDetails>
-        </Accordion>
+          ) : (
+            profile.searchProfiles.map((sp) => (
+              <SearchProfileCard
+                key={sp.profileId}
+                profile={sp}
+                results={grouped[sp.profileId] ?? []}
+              />
+            ))
+          )}
+        </SidebarSection>
 
-        {/* My Home section (placeholder) */}
-        <Accordion
-          elevation={0}
-          disableGutters
-          className="before:hidden"
-          sx={{ backgroundColor: 'transparent' }}
+        <SidebarSection
+          title="My Documents"
+          icon={<NiListSquare size="small" />}
         >
-          <AccordionSummary
-            expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-            className="min-h-0 px-2 py-2"
-            sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
-          >
-            <Box className="flex items-center gap-2">
-              <NiMenuSplit size="small" />
-              <Typography variant="h6" className="text-primary text-sm font-semibold">
-                My Home
-              </Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails className="px-2 pb-3 pt-0">
+          <DocumentPanel documentList={documents} />
+        </SidebarSection>
+
+        <SidebarSection
+          title="My Viewings"
+          icon={<NiCalendar size="small" />}
+          contentClassName="flex flex-col gap-1.5 px-2 pb-3 pt-0"
+        >
+          {viewings.length === 0 ? (
             <Typography variant="caption" className="text-text-secondary px-2.5 italic">
-              Coming soon
+              Schedule a viewing through chat →
             </Typography>
-          </AccordionDetails>
-        </Accordion>
+          ) : (
+            viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)
+          )}
+        </SidebarSection>
+
+        <SidebarSection
+          title="My Offers"
+          icon={<NiDuplicate size="small" />}
+        >
+          <Typography variant="caption" className="text-text-secondary px-2.5 italic">
+            Coming soon
+          </Typography>
+        </SidebarSection>
+
+        <SidebarSection
+          title="My Home"
+          icon={<NiMenuSplit size="small" />}
+        >
+          <Typography variant="caption" className="text-text-secondary px-2.5 italic">
+            Coming soon
+          </Typography>
+        </SidebarSection>
       </Box>
     </nav>
   )
