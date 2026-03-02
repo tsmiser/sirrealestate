@@ -1,9 +1,11 @@
-import { Accordion, AccordionDetails, AccordionSummary, Box, Chip, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Box, Chip, Typography } from '@mui/material'
 import { Link } from 'react-router-dom'
 import NiChevronRightSmall from '@/icons/nexture/ni-chevron-right-small'
 import ListingMatchCard from './ListingMatchCard'
 import type { SearchProfile } from '@/hooks/useUserProfile'
 import type { SearchResult } from '@/hooks/useSearchResults'
+import { cn } from '@/lib/utils'
 
 interface SearchProfileCardProps {
   profile: SearchProfile
@@ -28,21 +30,23 @@ function formatCriteria(profile: SearchProfile): string {
 }
 
 export default function SearchProfileCard({ profile, results }: SearchProfileCardProps) {
+  const [expanded, setExpanded] = useState(false)
   const topResults = results.slice(0, 3)
 
   return (
-    <Accordion
-      elevation={0}
-      disableGutters
-      className="before:hidden"
-      sx={{ backgroundColor: 'transparent', '& .MuiCollapse-root': { overflow: 'hidden !important' } }}
-    >
-      <AccordionSummary
-        expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
-        className="min-h-0 px-2 py-1.5"
-        sx={{ flexDirection: 'row-reverse', gap: 0.5 }}
+    <Box>
+      {/* Header row — acts as the toggle */}
+      <Box
+        component="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full cursor-pointer items-center gap-1 rounded-xl px-2 py-1.5 text-left"
+        sx={{ background: 'none', border: 'none', p: 0 }}
       >
-        <Box className="flex w-full items-center justify-between gap-2">
+        <NiChevronRightSmall
+          size="small"
+          className={cn('accordion-rotate shrink-0 transition-transform', expanded && 'rotate-90')}
+        />
+        <Box className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1 py-1.5">
           <Typography variant="body2" className="font-medium truncate">
             {profile.name}
           </Typography>
@@ -53,29 +57,35 @@ export default function SearchProfileCard({ profile, results }: SearchProfileCar
             className="h-4 shrink-0 text-[10px]"
           />
         </Box>
-      </AccordionSummary>
-      <AccordionDetails className="flex flex-col gap-1.5 px-2 pb-2 pt-0">
-        <Typography variant="caption" className="text-text-secondary ms-7 block">
-          {formatCriteria(profile)}
-        </Typography>
-        {topResults.length === 0 ? (
-          <Typography variant="caption" className="text-text-secondary ms-7">
-            No matches yet — monitoring will run daily at 8 AM.
+      </Box>
+
+      {/* Expandable content — plain show/hide, no Collapse animation */}
+      {expanded && (
+        <Box className="flex flex-col gap-1.5 px-2 pb-2 pt-0">
+          <Typography variant="caption" className="text-text-secondary ms-7 block">
+            {formatCriteria(profile)}
           </Typography>
-        ) : (
-          <>
-            {topResults.map((r) => <ListingMatchCard key={r.profileIdListingId} result={r} />)}
-            {results.length > 0 && (
-              <Link
-                to={`/listings/${profile.profileId}`}
-                className="text-primary ms-7 mt-1 block text-xs font-medium hover:underline"
-              >
-                Show all {results.length} listings →
-              </Link>
-            )}
-          </>
-        )}
-      </AccordionDetails>
-    </Accordion>
+          {topResults.length === 0 ? (
+            <Typography variant="caption" className="text-text-secondary ms-7">
+              No matches yet — monitoring will run daily at 8 AM.
+            </Typography>
+          ) : (
+            <>
+              {topResults.map((r) => (
+                <ListingMatchCard key={r.profileIdListingId} result={r} />
+              ))}
+              {results.length > 0 && (
+                <Link
+                  to={`/listings/${profile.profileId}`}
+                  className="text-primary ms-7 mt-1 block text-xs font-medium hover:underline"
+                >
+                  Show all {results.length} listings →
+                </Link>
+              )}
+            </>
+          )}
+        </Box>
+      )}
+    </Box>
   )
 }

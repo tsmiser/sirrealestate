@@ -120,7 +120,7 @@ export default function LeftMenu() {
           elevation={0}
           disableGutters
           className="before:hidden"
-          sx={{ backgroundColor: 'transparent', '& .MuiCollapse-root': { overflow: 'hidden !important' } }}
+          sx={{ backgroundColor: 'transparent' }}
         >
           <AccordionSummary
             expandIcon={<NiChevronRightSmall size="small" className="accordion-rotate" />}
