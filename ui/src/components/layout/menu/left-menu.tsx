@@ -153,7 +153,6 @@ export default function LeftMenu() {
 
         {/* My Documents section */}
         <Accordion
-          defaultExpanded
           elevation={0}
           disableGutters
           className="before:hidden"
@@ -178,7 +177,6 @@ export default function LeftMenu() {
 
         {/* My Viewings section */}
         <Accordion
-          defaultExpanded
           elevation={0}
           disableGutters
           className="before:hidden"
