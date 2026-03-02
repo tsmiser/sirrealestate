@@ -30,20 +30,42 @@ const SUGGESTED_QUESTIONS = [
   'What should I look for in a home inspection?',
 ]
 
+const SESSION_KEY = 'chat_session'
+
+function loadSession(): { conversation: Conversation[]; messages: ConversationMessage[]; sessionId?: string } {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return { conversation: [], messages: [] }
+}
+
+function saveSession(conversation: Conversation[], messages: ConversationMessage[], sessionId?: string) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ conversation, messages, sessionId }))
+  } catch { /* ignore */ }
+}
+
 export default function ChatPage() {
   const [searchParams] = useSearchParams()
   const [inputValue, setInputValue] = useState('')
-  const [conversation, setConversation] = useState<Conversation[]>([])
-  const [messages, setMessages] = useState<ConversationMessage[]>([])
-  const [sessionId, setSessionId] = useState<string | undefined>()
   const [isLoading, setIsLoading] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+
+  const [conversation, setConversation] = useState<Conversation[]>(() => loadSession().conversation)
+  const [messages, setMessages] = useState<ConversationMessage[]>(() => loadSession().messages)
+  const [sessionId, setSessionId] = useState<string | undefined>(() => loadSession().sessionId)
   const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
   const { profile, refetch: refetchProfile } = useUserProfile()
   const { upload, isUploading } = useDocumentUpload()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { refetchProfile() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist chat session across navigation within the same tab
+  useEffect(() => {
+    saveSession(conversation, messages, sessionId)
+  }, [conversation, messages, sessionId])
 
   const userInitials = profile?.firstName && profile?.lastName
     ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase()
