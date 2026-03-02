@@ -8,6 +8,7 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import type { Construct } from 'constructs'
@@ -41,6 +42,8 @@ interface ChatServiceStackProps extends StackProps {
   notificationsTable: dynamodb.Table
   viewingsTable: dynamodb.Table
   searchWorkerLambda: lambda.IFunction
+  documentBucket: s3.Bucket
+  documentsTable: dynamodb.Table
 }
 
 export class ChatServiceStack extends Stack {
@@ -52,6 +55,8 @@ export class ChatServiceStack extends Stack {
       SEARCH_RESULTS_TABLE: props.searchResultsTable.tableName,
       NOTIFICATIONS_TABLE: props.notificationsTable.tableName,
       VIEWINGS_TABLE: props.viewingsTable.tableName,
+      DOCUMENTS_TABLE: props.documentsTable.tableName,
+      DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
     }
 
     const bundlingOptions = { externalModules: [] as string[] }
@@ -89,6 +94,9 @@ export class ChatServiceStack extends Stack {
     // Permission to invoke the search worker Lambda
     props.searchWorkerLambda.grantInvoke(chatLambda)
 
+    // Grant chat Lambda read access to document bucket (for future LLM tool access)
+    props.documentBucket.grantRead(chatLambda)
+
     // SES permission for schedule_viewing tool
     chatLambda.addToRolePolicy(
       new iam.PolicyStatement({
@@ -113,6 +121,8 @@ export class ChatServiceStack extends Stack {
     props.searchResultsTable.grantReadData(dataLambda)
     props.viewingsTable.grantReadData(dataLambda)
     props.viewingsTable.grantWriteData(dataLambda)
+    props.documentsTable.grantReadWriteData(dataLambda)
+    props.documentBucket.grantReadWrite(dataLambda)
 
     // SES permission for buyer notification on agent response
     dataLambda.addToRolePolicy(
@@ -160,6 +170,34 @@ export class ChatServiceStack extends Stack {
     new apigwv2.HttpRoute(this, 'ViewingsRoute', {
       httpApi: props.httpApi,
       routeKey: apigwv2.HttpRouteKey.with('/viewings', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
+    })
+
+    new apigwv2.HttpRoute(this, 'DocumentsListRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/documents', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
+    })
+
+    new apigwv2.HttpRoute(this, 'DocumentsUploadUrlRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/documents/upload-url', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
+    })
+
+    new apigwv2.HttpRoute(this, 'DocumentsConfirmRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/documents', apigwv2.HttpMethod.POST),
+      integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
+    })
+
+    new apigwv2.HttpRoute(this, 'DocumentsDownloadUrlRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/documents/download-url', apigwv2.HttpMethod.GET),
       integration: dataIntegration,
       authorizer: cognitoAuthorizer,
     })

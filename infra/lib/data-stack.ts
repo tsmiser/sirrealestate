@@ -1,5 +1,6 @@
 import { Stack, RemovalPolicy, CfnOutput, type StackProps } from 'aws-cdk-lib'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import * as s3 from 'aws-cdk-lib/aws-s3'
 import type { Construct } from 'constructs'
 
 export class DataStack extends Stack {
@@ -7,6 +8,8 @@ export class DataStack extends Stack {
   readonly searchResultsTable: dynamodb.Table
   readonly notificationsTable: dynamodb.Table
   readonly viewingsTable: dynamodb.Table
+  readonly documentBucket: s3.Bucket
+  readonly documentsTable: dynamodb.Table
 
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props)
@@ -59,9 +62,34 @@ export class DataStack extends Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     })
 
+    this.documentBucket = new s3.Bucket(this, 'DocumentBucket', {
+      bucketName: `sirrealtor-documents-${this.account}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+      removalPolicy: RemovalPolicy.RETAIN,
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT],
+          allowedOrigins: ['https://app.sirrealtor.com', 'http://localhost:5173'],
+          allowedHeaders: ['*'],
+          maxAge: 3000,
+        },
+      ],
+    })
+
+    this.documentsTable = new dynamodb.Table(this, 'DocumentsTable', {
+      tableName: 'SirRealtor-Documents',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'documentId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN,
+    })
+
     new CfnOutput(this, 'UserProfileTableName', { value: this.userProfileTable.tableName })
     new CfnOutput(this, 'SearchResultsTableName', { value: this.searchResultsTable.tableName })
     new CfnOutput(this, 'NotificationsTableName', { value: this.notificationsTable.tableName })
     new CfnOutput(this, 'ViewingsTableName', { value: this.viewingsTable.tableName })
+    new CfnOutput(this, 'DocumentBucketName', { value: this.documentBucket.bucketName })
+    new CfnOutput(this, 'DocumentsTableName', { value: this.documentsTable.tableName })
   }
 }
