@@ -48,6 +48,7 @@ uiStack.addDependency(certStack)
 const authStack = new AuthStack(app, 'SirRealtor-Auth', {
   env: prodEnv,
   appDomain: config.appDomain,
+  domainName: config.baseDomain,
 })
 authStack.addDependency(dnsStack)
 
@@ -68,6 +69,7 @@ const sesStack = new SesStack(app, 'SirRealtor-Ses', {
   env: prodEnv,
   domainName: config.baseDomain,
 })
+authStack.addDependency(sesStack)
 
 const searchWorkerStack = new SearchWorkerStack(app, 'SirRealtor-SearchWorker', {
   env: prodEnv,
