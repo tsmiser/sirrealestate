@@ -1,4 +1,5 @@
 import { Accordion, AccordionDetails, AccordionSummary, Box, Chip, Typography } from '@mui/material'
+import { Link } from 'react-router-dom'
 import NiChevronRightSmall from '@/icons/nexture/ni-chevron-right-small'
 import ListingMatchCard from './ListingMatchCard'
 import type { SearchProfile } from '@/hooks/useUserProfile'
@@ -62,7 +63,17 @@ export default function SearchProfileCard({ profile, results }: SearchProfileCar
             No matches yet — monitoring will run daily at 8 AM.
           </Typography>
         ) : (
-          topResults.map((r) => <ListingMatchCard key={r.profileIdListingId} result={r} />)
+          <>
+            {topResults.map((r) => <ListingMatchCard key={r.profileIdListingId} result={r} />)}
+            {results.length > 0 && (
+              <Link
+                to={`/listings/${profile.profileId}`}
+                className="text-primary ms-7 mt-1 block text-xs font-medium hover:underline"
+              >
+                Show all {results.length} listings →
+              </Link>
+            )}
+          </>
         )}
       </AccordionDetails>
     </Accordion>

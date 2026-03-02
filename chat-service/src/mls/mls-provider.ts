@@ -19,6 +19,8 @@ export interface Listing {
   agentEmail?: string
   agentName?: string
   listingUrl?: string
+  latitude?: number
+  longitude?: number
   rawData: unknown
 }
 

@@ -8,6 +8,8 @@ interface RentcastProperty {
   bathrooms: number
   squareFootage?: number
   listingType?: string
+  latitude?: number
+  longitude?: number
   // Rentcast does not always expose agent contact in the free tier
   [key: string]: unknown
 }
@@ -55,6 +57,8 @@ export class RentcastProvider implements MlsProvider {
       bedrooms: p.bedrooms,
       bathrooms: p.bathrooms,
       sqft: p.squareFootage,
+      latitude: typeof p.latitude === 'number' ? p.latitude : undefined,
+      longitude: typeof p.longitude === 'number' ? p.longitude : undefined,
       rawData: p,
     }))
   }

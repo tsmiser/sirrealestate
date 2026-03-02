@@ -43,5 +43,5 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: CDK deploy chat stack
-        run: pnpm --filter infra exec -- cdk deploy SirRealtor-Chat --require-approval never -c prodAccount=${{ secrets.AWS_ACCOUNT_ID }}
+      - name: CDK deploy chat and search-worker stacks
+        run: pnpm --filter infra exec -- cdk deploy SirRealtor-Chat SirRealtor-SearchWorker --require-approval never -c prodAccount=${{ secrets.AWS_ACCOUNT_ID }}
