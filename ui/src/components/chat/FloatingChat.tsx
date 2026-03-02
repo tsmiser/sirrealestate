@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Avatar,
   Box,
@@ -23,6 +23,7 @@ import NiMessage from '@/icons/nexture/ni-message'
 import NiMicrophone from '@/icons/nexture/ni-microphone'
 import NiSendRight from '@/icons/nexture/ni-send-right'
 import NiCrossSquare from '@/icons/nexture/ni-cross-square'
+import NiExpand from '@/icons/nexture/ni-expand'
 import logo from '@/assets/logo.png'
 import { cn } from '@/lib/utils'
 import type { ConversationMessage } from '@/types'
@@ -33,6 +34,7 @@ export default function FloatingChat() {
   const { isOpen, openChat, closeChat, pendingMessage, clearPendingMessage } = useFloatingChat()
 
   if (pathname === '/chat') return null
+  const navigate = useNavigate()
   const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
   const { profile } = useUserProfile()
 
@@ -123,6 +125,18 @@ export default function FloatingChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversation, isLoading])
 
+  const handleExpand = () => {
+    if (conversation.length > 0) {
+      sessionStorage.setItem('chat_session', JSON.stringify({
+        conversation,
+        messages,
+        sessionId: sessionIdRef.current,
+      }))
+    }
+    closeChat()
+    navigate('/chat')
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -151,9 +165,14 @@ export default function FloatingChat() {
                 Sir Realtor
               </Typography>
             </Box>
-            <IconButton size="small" onClick={closeChat} className="text-white">
-              <NiCrossSquare size="small" />
-            </IconButton>
+            <Box className="flex items-center">
+              <IconButton size="small" onClick={handleExpand} className="text-white">
+                <NiExpand size="small" />
+              </IconButton>
+              <IconButton size="small" onClick={closeChat} className="text-white">
+                <NiCrossSquare size="small" />
+              </IconButton>
+            </Box>
           </Box>
 
           {/* Messages */}
