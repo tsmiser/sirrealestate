@@ -14,6 +14,7 @@ type ChatMessageProps = {
   onAnimationEnd: () => void
   onAnimationStart: () => void
   userInitials: string
+  onSuggestedQuestion?: (q: string) => void
 }
 
 export default function ChatMessage({
@@ -21,6 +22,7 @@ export default function ChatMessage({
   onAnimationEnd,
   onAnimationStart,
   userInitials,
+  onSuggestedQuestion,
 }: ChatMessageProps) {
   const [isAnimating, setIsAnimating] = useState(true)
 
@@ -50,39 +52,56 @@ export default function ChatMessage({
               {conversation.message}
             </DsMarkdown>
 
-            <Fade in={!isAnimating} timeout={{ enter: 200 }}>
-              <Box className="mt-4 flex flex-row items-end gap-1">
-                <Button
-                  size="tiny"
-                  color="grey"
-                  variant="pastel"
-                  startIcon={<NiLike size="small" />}
-                  className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
-                />
-                <Button
-                  size="tiny"
-                  color="grey"
-                  variant="pastel"
-                  startIcon={<NiUnlike size="small" />}
-                  className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
-                />
-                <Button
-                  size="tiny"
-                  color="grey"
-                  variant="pastel"
-                  startIcon={<NiDuplicate size="small" />}
-                  className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
-                  onClick={() => navigator.clipboard.writeText(conversation.message)}
-                />
-                <Button
-                  size="tiny"
-                  color="grey"
-                  variant="pastel"
-                  startIcon={<NiShare size="small" />}
-                  className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
-                />
+            {conversation.suggestedQuestions ? (
+              <Box className="mt-3 flex flex-wrap gap-1.5">
+                {conversation.suggestedQuestions.map((q) => (
+                  <Button
+                    key={q}
+                    size="small"
+                    variant="outlined"
+                    color="grey"
+                    className="hover:text-primary normal-case text-xs"
+                    onClick={() => onSuggestedQuestion?.(q)}
+                  >
+                    {q}
+                  </Button>
+                ))}
               </Box>
-            </Fade>
+            ) : (
+              <Fade in={!isAnimating} timeout={{ enter: 200 }}>
+                <Box className="mt-4 flex flex-row items-end gap-1">
+                  <Button
+                    size="tiny"
+                    color="grey"
+                    variant="pastel"
+                    startIcon={<NiLike size="small" />}
+                    className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
+                  />
+                  <Button
+                    size="tiny"
+                    color="grey"
+                    variant="pastel"
+                    startIcon={<NiUnlike size="small" />}
+                    className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
+                  />
+                  <Button
+                    size="tiny"
+                    color="grey"
+                    variant="pastel"
+                    startIcon={<NiDuplicate size="small" />}
+                    className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
+                    onClick={() => navigator.clipboard.writeText(conversation.message)}
+                  />
+                  <Button
+                    size="tiny"
+                    color="grey"
+                    variant="pastel"
+                    startIcon={<NiShare size="small" />}
+                    className="[.active]:text-primary [.active]:bg-grey-25 hover:text-primary icon-only min-w-0 md:min-w-16"
+                  />
+                </Box>
+              </Fade>
+            )}
           </CardContent>
         </Card>
       </Box>

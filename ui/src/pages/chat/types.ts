@@ -3,4 +3,5 @@ export type Conversation = {
   type: 'User' | 'AI'
   message: string
   animate?: boolean
+  suggestedQuestions?: string[]
 }

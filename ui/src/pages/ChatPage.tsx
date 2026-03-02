@@ -24,11 +24,17 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { cn } from '@/lib/utils'
 import type { ConversationMessage } from '@/types'
 
-const SUGGESTED_QUESTIONS = [
-  'What neighborhoods in my area have the best value?',
-  'How do I evaluate if a property is priced fairly?',
-  'What should I look for in a home inspection?',
-]
+const INTRO_CONVERSATION: Conversation = {
+  id: 'intro',
+  type: 'AI',
+  message: "Hello, I'm Sir Realtor and I'll be your virtual real estate concierge. Let's chat about what you're looking for in a home.",
+  animate: false,
+  suggestedQuestions: [
+    'What neighborhoods in my area have the best value?',
+    'How do I evaluate if a property is priced fairly?',
+    'What should I look for in a home inspection?',
+  ],
+}
 
 const SESSION_KEY = 'chat_session'
 
@@ -37,7 +43,7 @@ function loadSession(): { conversation: Conversation[]; messages: ConversationMe
     const raw = sessionStorage.getItem(SESSION_KEY)
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
-  return { conversation: [], messages: [] }
+  return { conversation: [INTRO_CONVERSATION], messages: [] }
 }
 
 function saveSession(conversation: Conversation[], messages: ConversationMessage[], sessionId?: string) {
@@ -171,46 +177,17 @@ export default function ChatPage() {
   return (
     <Box className="relative flex h-full min-h-[calc(100vh-12rem)] flex-col items-center gap-5 bg-black/[0.03]">
       {/* Conversation area */}
-      <Box
-        className={cn(
-          'flex w-full max-w-200 flex-1 flex-col items-center justify-center pb-32 sm:px-4',
-          conversation.length > 0 && 'items-end justify-start gap-5',
-        )}
-      >
-        {conversation.length === 0 ? (
-          <Box className="flex flex-col items-center gap-4">
-            <Typography
-              variant="body1"
-              className="from-primary-dark via-primary to-primary-light inline-block max-w-lg bg-linear-to-r bg-clip-text text-center text-transparent"
-            >
-              Hello, I'm Sir Realtor and I'll be your virtual real estate concierge. Let's chat about what you're looking for in a home.
-            </Typography>
-
-            <Box className="mt-2 flex flex-col items-center gap-1">
-              {SUGGESTED_QUESTIONS.map((q) => (
-                <Button
-                  key={q}
-                  variant="outlined"
-                  color="grey"
-                  className="hover:text-primary"
-                  onClick={() => sendMessage(q)}
-                >
-                  {q}
-                </Button>
-              ))}
-            </Box>
-          </Box>
-        ) : (
-          conversation.map((msg) => (
-            <ChatMessage
-              key={msg.id}
-              conversation={msg}
-              onAnimationStart={() => setIsAnimating(true)}
-              onAnimationEnd={() => setIsAnimating(false)}
-              userInitials={userInitials}
-            />
-          ))
-        )}
+      <Box className="flex w-full max-w-200 flex-1 flex-col items-end justify-start gap-5 pb-32 sm:px-4">
+        {conversation.map((msg) => (
+          <ChatMessage
+            key={msg.id}
+            conversation={msg}
+            onAnimationStart={() => setIsAnimating(true)}
+            onAnimationEnd={() => setIsAnimating(false)}
+            userInitials={userInitials}
+            onSuggestedQuestion={sendMessage}
+          />
+        ))}
 
         {isLoading && (
           <Box className="w-full">
