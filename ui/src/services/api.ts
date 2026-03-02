@@ -4,6 +4,7 @@ import type { ChatRequest, ChatResponse } from '@/types'
 import type { UserProfile } from '@/hooks/useUserProfile'
 import type { SearchResult } from '@/hooks/useSearchResults'
 import type { Viewing } from '@/hooks/useViewings'
+import type { UserDocument } from '@/hooks/useDocuments'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -54,4 +55,16 @@ export const searchResults = {
 
 export const viewings = {
   get: () => api.get<{ viewings: Viewing[] }>('/viewings'),
+}
+
+export const documents = {
+  list: () => api.get<{ documents: UserDocument[] }>('/documents'),
+  getUploadUrl: (fileName: string, contentType: string) =>
+    api.get<{ uploadUrl: string; documentId: string; s3Key: string }>(
+      `/documents/upload-url?fileName=${encodeURIComponent(fileName)}&contentType=${encodeURIComponent(contentType)}`,
+    ),
+  confirm: (body: { documentId: string; s3Key: string; fileName: string; contentType: string; sizeBytes: number }) =>
+    api.post<UserDocument>('/documents', body),
+  getDownloadUrl: (documentId: string) =>
+    api.get<{ downloadUrl: string }>(`/documents/download-url?documentId=${encodeURIComponent(documentId)}`),
 }

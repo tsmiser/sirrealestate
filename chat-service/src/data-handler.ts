@@ -1,14 +1,17 @@
-import { DynamoDBClient, GetItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 import type { AttributeValue } from '@aws-sdk/client-dynamodb'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
-import type { UserProfile, SearchResult, Viewing } from './types'
+import type { UserProfile, SearchResult, Viewing, UserDocument } from './types'
 import { viewingAgentResponseToBuyerEmail } from './email-templates'
 import { buildListingUrl } from './mls/listing-url'
 
 const dynamo = new DynamoDBClient({})
 const ses = new SESClient({})
+const s3 = new S3Client({})
 
 function json(statusCode: number, body: unknown): APIGatewayProxyResultV2 {
   return {
@@ -161,6 +164,94 @@ async function getViewings(userId: string): Promise<APIGatewayProxyResultV2> {
   return json(200, { viewings })
 }
 
+async function getDocuments(userId: string): Promise<APIGatewayProxyResultV2> {
+  const result = await dynamo.send(
+    new QueryCommand({
+      TableName: process.env.DOCUMENTS_TABLE!,
+      KeyConditionExpression: 'userId = :uid',
+      ExpressionAttributeValues: { ':uid': { S: userId } },
+      ScanIndexForward: false,
+    }),
+  )
+  const documents = (result.Items ?? []).map((item: Record<string, AttributeValue>) => unmarshall(item) as UserDocument)
+  return json(200, { documents })
+}
+
+async function getUploadUrl(userId: string, event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const { fileName, contentType } = event.queryStringParameters ?? {}
+  if (!fileName || !contentType) return json(400, { error: 'Missing fileName or contentType' })
+
+  const documentId = crypto.randomUUID()
+  const s3Key = `${userId}/${documentId}`
+
+  const uploadUrl = await getSignedUrl(
+    s3,
+    new PutObjectCommand({
+      Bucket: process.env.DOCUMENT_BUCKET_NAME!,
+      Key: s3Key,
+      ContentType: contentType,
+    }),
+    { expiresIn: 300 },
+  )
+
+  return json(200, { uploadUrl, documentId, s3Key })
+}
+
+async function confirmUpload(userId: string, event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const body = JSON.parse(event.body ?? '{}') as {
+    documentId?: string
+    s3Key?: string
+    fileName?: string
+    contentType?: string
+    sizeBytes?: number
+  }
+
+  const { documentId, s3Key, fileName, contentType, sizeBytes } = body
+  if (!documentId || !s3Key || !fileName || !contentType || sizeBytes === undefined) {
+    return json(400, { error: 'Missing required fields' })
+  }
+
+  const uploadedAt = new Date().toISOString()
+  const doc: UserDocument = { userId, documentId, fileName, contentType, sizeBytes, s3Key, uploadedAt }
+
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.DOCUMENTS_TABLE!,
+      Item: marshall(doc),
+    }),
+  )
+
+  return json(200, doc)
+}
+
+async function getDownloadUrl(userId: string, event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const { documentId } = event.queryStringParameters ?? {}
+  if (!documentId) return json(400, { error: 'Missing documentId' })
+
+  // Verify the document belongs to this user
+  const result = await dynamo.send(
+    new GetItemCommand({
+      TableName: process.env.DOCUMENTS_TABLE!,
+      Key: marshall({ userId, documentId }),
+      ProjectionExpression: 's3Key',
+    }),
+  )
+  if (!result.Item) return json(404, { error: 'Document not found' })
+
+  const { s3Key } = unmarshall(result.Item) as Pick<UserDocument, 's3Key'>
+
+  const downloadUrl = await getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: process.env.DOCUMENT_BUCKET_NAME!,
+      Key: s3Key,
+    }),
+    { expiresIn: 900 },
+  )
+
+  return json(200, { downloadUrl })
+}
+
 export async function handler(
   event: APIGatewayProxyEventV2,
 ): Promise<APIGatewayProxyResultV2> {
@@ -180,6 +271,10 @@ export async function handler(
     if (path === '/profile') return getProfile(userId)
     if (path === '/search-results') return getSearchResults(userId)
     if (path === '/viewings') return getViewings(userId)
+    if (path === '/documents' && event.requestContext.http.method === 'GET') return getDocuments(userId)
+    if (path === '/documents/upload-url') return getUploadUrl(userId, event)
+    if (path === '/documents' && event.requestContext.http.method === 'POST') return confirmUpload(userId, event)
+    if (path === '/documents/download-url') return getDownloadUrl(userId, event)
     return json(404, { error: 'Not found' })
   } catch (err) {
     console.error('Data handler error', err)

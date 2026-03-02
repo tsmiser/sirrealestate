@@ -120,6 +120,16 @@ export interface Viewing {
   feedbackCollectedAt?: string
 }
 
+export interface UserDocument {
+  userId: string
+  documentId: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  s3Key: string
+  uploadedAt: string
+}
+
 // Anthropic SDK compatible message types
 export interface TextContentBlock {
   type: 'text'

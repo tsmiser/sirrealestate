@@ -5,8 +5,10 @@ type RefreshFn = () => void
 type SidebarRefreshContextType = {
   invalidateProfile: () => void
   invalidateSearchResults: () => void
+  invalidateDocuments: () => void
   registerProfileRefetch: (fn: RefreshFn) => void
   registerSearchResultsRefetch: (fn: RefreshFn) => void
+  registerDocumentsRefetch: (fn: RefreshFn) => void
 }
 
 const SidebarRefreshContext = createContext<SidebarRefreshContextType | null>(null)
@@ -14,6 +16,7 @@ const SidebarRefreshContext = createContext<SidebarRefreshContextType | null>(nu
 export function SidebarRefreshProvider({ children }: PropsWithChildren) {
   const profileRefetchRef = useRef<RefreshFn | null>(null)
   const searchResultsRefetchRef = useRef<RefreshFn | null>(null)
+  const documentsRefetchRef = useRef<RefreshFn | null>(null)
 
   const invalidateProfile = useCallback(() => {
     profileRefetchRef.current?.()
@@ -21,6 +24,10 @@ export function SidebarRefreshProvider({ children }: PropsWithChildren) {
 
   const invalidateSearchResults = useCallback(() => {
     searchResultsRefetchRef.current?.()
+  }, [])
+
+  const invalidateDocuments = useCallback(() => {
+    documentsRefetchRef.current?.()
   }, [])
 
   const registerProfileRefetch = useCallback((fn: RefreshFn) => {
@@ -31,13 +38,19 @@ export function SidebarRefreshProvider({ children }: PropsWithChildren) {
     searchResultsRefetchRef.current = fn
   }, [])
 
+  const registerDocumentsRefetch = useCallback((fn: RefreshFn) => {
+    documentsRefetchRef.current = fn
+  }, [])
+
   return (
     <SidebarRefreshContext.Provider
       value={{
         invalidateProfile,
         invalidateSearchResults,
+        invalidateDocuments,
         registerProfileRefetch,
         registerSearchResultsRefetch,
+        registerDocumentsRefetch,
       }}
     >
       {children}

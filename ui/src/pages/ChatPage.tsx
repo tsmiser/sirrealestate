@@ -1,5 +1,5 @@
 // ci trigger
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -12,6 +12,7 @@ import {
   Typography,
 } from '@mui/material'
 import { chat } from '@/services/api'
+import { useDocumentUpload } from '@/hooks/useDocumentUpload'
 import ChatMessage from '@/pages/chat/chat-message'
 import { Conversation } from '@/pages/chat/types'
 import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
@@ -39,6 +40,8 @@ export default function ChatPage() {
   const [isAnimating, setIsAnimating] = useState(false)
   const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
   const { profile, refetch: refetchProfile } = useUserProfile()
+  const { upload, isUploading } = useDocumentUpload()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { refetchProfile() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -114,6 +117,13 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    await upload(file)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -195,6 +205,12 @@ export default function ChatPage() {
 
       {/* Fixed input bar */}
       <Box className="bg-background fixed bottom-0 z-2 w-full p-4 sm:max-w-160 lg:max-w-200">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileChange}
+        />
         <Card>
           <CardContent className="flex flex-col gap-4 p-2!">
             <FormControl className="MuiTextField-root relative mb-0 w-full">
@@ -226,14 +242,18 @@ export default function ChatPage() {
                     />
                   </span>
                 </Tooltip>
-                <Tooltip title="Attach" arrow enterDelay={2000}>
-                  <Button
-                    className="icon-only"
-                    size="medium"
-                    color="grey"
-                    variant="text"
-                    startIcon={<NiArrowOutUp size="medium" />}
-                  />
+                <Tooltip title={isUploading ? 'Uploading…' : 'Attach document'} arrow enterDelay={isUploading ? 0 : 2000}>
+                  <span>
+                    <Button
+                      className={cn('icon-only', isUploading && 'animate-pulse')}
+                      size="medium"
+                      color="grey"
+                      variant="text"
+                      disabled={isLoading || isUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      startIcon={<NiArrowOutUp size="medium" />}
+                    />
+                  </span>
                 </Tooltip>
                 <Tooltip title="Send" arrow enterDelay={2000}>
                   <Button
