@@ -66,7 +66,7 @@ export default function LeftMenu() {
       style={{ width: sidebarOpen ? `${sidebarWidth}px` : '0px' }}
     >
       <Box
-        className="flex h-full flex-col gap-0.5 overflow-y-auto px-4 py-2.5"
+        className="flex min-h-0 h-full flex-col gap-0.5 overflow-y-auto px-4 py-2.5"
         style={{ width: `${sidebarWidth}px` }}
       >
         {/* Chat nav link */}

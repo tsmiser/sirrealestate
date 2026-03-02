@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Avatar,
   Box,
@@ -28,7 +29,10 @@ import type { ConversationMessage } from '@/types'
 import type { Conversation } from '@/pages/chat/types'
 
 export default function FloatingChat() {
+  const { pathname } = useLocation()
   const { isOpen, openChat, closeChat, pendingMessage, clearPendingMessage } = useFloatingChat()
+
+  if (pathname === '/chat') return null
   const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
   const { profile } = useUserProfile()
 
