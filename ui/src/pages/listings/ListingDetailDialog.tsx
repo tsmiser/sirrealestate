@@ -1,6 +1,7 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import { useFloatingChat } from '@/components/chat/floating-chat-context'
 import type { SearchResult } from '@/hooks/useSearchResults'
+import { streetViewUrl } from '@/lib/streetview'
 
 interface ListingDetailDialogProps {
   result: SearchResult | null
@@ -14,6 +15,9 @@ export default function ListingDetailDialog({ result, open, onClose }: ListingDe
   if (!result) return null
 
   const l = result.listingData
+  const imgUrl = l.latitude != null && l.longitude != null
+    ? streetViewUrl(l.latitude, l.longitude, 800, 400)
+    : null
 
   function handleScheduleViewing() {
     onClose()
@@ -26,8 +30,16 @@ export default function ListingDetailDialog({ result, open, onClose }: ListingDe
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{l.address}</DialogTitle>
-      <DialogContent dividers>
-        <Box className="flex flex-col gap-3">
+      <DialogContent dividers sx={{ padding: 0 }}>
+        {imgUrl && (
+          <img
+            src={imgUrl}
+            alt={l.address}
+            style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
+        )}
+        <Box className="flex flex-col gap-3 p-5">
           <Box className="flex flex-wrap gap-4">
             <Box>
               <Typography variant="caption" className="text-text-secondary block">
