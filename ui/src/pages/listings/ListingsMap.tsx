@@ -72,7 +72,8 @@ export default function ListingsMap({ results, onListingClick }: ListingsMapProp
       )}
       <GoogleMap
         mapContainerStyle={{ width: '100%', height: '100%' }}
-        zoom={12}
+        center={{ lat: 39.5, lng: -98.35 }}
+        zoom={4}
         onLoad={onMapLoad}
         options={{ streetViewControl: false, mapTypeControl: false }}
       >
