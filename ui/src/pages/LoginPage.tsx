@@ -1,7 +1,7 @@
 import '@/style/global.css'
 
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { signIn } from 'aws-amplify/auth'
 import {
   Alert,
@@ -21,9 +21,13 @@ import MuiLayerOverride from '@/theme/mui-layer-override'
 import logo from '@/assets/logo.png'
 import NiEyeClose from '@/icons/nexture/ni-eye-close'
 import NiEyeOpen from '@/icons/nexture/ni-eye-open'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { user, isLoading } = useAuth()
+
+  if (!isLoading && user) return <Navigate to="/chat" replace />
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
