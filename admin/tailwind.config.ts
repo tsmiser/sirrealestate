@@ -90,6 +90,36 @@ const config: Config = {
           light: "hsl(var(--secondary-light))",
           dark: "hsl(var(--secondary-dark))",
         },
+        "accent-1": {
+          DEFAULT: "hsl(var(--accent-1))",
+          light: "hsl(var(--accent-1-light))",
+          dark: "hsl(var(--accent-1-dark))",
+        },
+        "accent-2": {
+          DEFAULT: "hsl(var(--accent-2))",
+          light: "hsl(var(--accent-2-light))",
+          dark: "hsl(var(--accent-2-dark))",
+        },
+        "accent-3": {
+          DEFAULT: "hsl(var(--accent-3))",
+          light: "hsl(var(--accent-3-light))",
+          dark: "hsl(var(--accent-3-dark))",
+        },
+        "accent-4": {
+          DEFAULT: "hsl(var(--accent-4))",
+          light: "hsl(var(--accent-4-light))",
+          dark: "hsl(var(--accent-4-dark))",
+        },
+        "accent-5": {
+          DEFAULT: "hsl(var(--accent-5))",
+          light: "hsl(var(--accent-5-light))",
+          dark: "hsl(var(--accent-5-dark))",
+        },
+        "accent-6": {
+          DEFAULT: "hsl(var(--accent-6))",
+          light: "hsl(var(--accent-6-light))",
+          dark: "hsl(var(--accent-6-dark))",
+        },
         error: {
           DEFAULT: "hsl(var(--error))",
           light: "hsl(var(--error-light))",
