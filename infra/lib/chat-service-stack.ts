@@ -239,6 +239,25 @@ export class ChatServiceStack extends Stack {
       integration: dataIntegration,
     })
 
+    // Unauthenticated — seller's agent disclosure upload flow
+    new apigwv2.HttpRoute(this, 'SellerResponseInfoRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/seller-response', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
+    })
+
+    new apigwv2.HttpRoute(this, 'SellerResponseUploadUrlRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/seller-response/upload-url', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
+    })
+
+    new apigwv2.HttpRoute(this, 'SellerResponseConfirmRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/seller-response/confirm', apigwv2.HttpMethod.POST),
+      integration: dataIntegration,
+    })
+
     new CfnOutput(this, 'AnthropicModelId', {
       value: ANTHROPIC_MODEL_ID,
       description: 'Anthropic model used by the chat Lambda',

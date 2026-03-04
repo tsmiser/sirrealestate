@@ -7,6 +7,7 @@ import LoginPage from '@/pages/LoginPage'
 import SignUpPage from '@/pages/SignUpPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 import ViewingResponsePage from '@/pages/ViewingResponsePage'
+import SellerResponsePage from '@/pages/SellerResponsePage'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/viewing-response" element={<ViewingResponsePage />} />
+        <Route path="/seller-response" element={<SellerResponsePage />} />
         <Route
           element={
             <AuthGuard>

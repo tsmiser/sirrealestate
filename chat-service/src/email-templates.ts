@@ -1,5 +1,29 @@
 import type { Listing, Viewing } from './types'
 
+export function sellerDisclosureReceivedEmail(
+  listingAddress: string,
+  fileNames: string[],
+  chatUrl: string,
+): { subject: string; html: string } {
+  const subject = `Seller's disclosure received for ${listingAddress}`
+  const fileList = fileNames.map((f) => `<li>${f}</li>`).join('')
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2 style="color:#1a56db">Seller's Disclosure Received</h2>
+  <p>The seller's agent has uploaded disclosure document(s) for:</p>
+  <p style="font-weight:600">${listingAddress}</p>
+  <ul>${fileList}</ul>
+  <p>You can review the document(s) in your SirRealtor account under My Documents.</p>
+  <a href="${chatUrl}" style="background:#1a56db;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
+    Open SirRealtor →
+  </a>
+</body>
+</html>`
+  return { subject, html }
+}
+
 export function newListingMatchEmail(listing: Listing, chatUrl: string): { subject: string; html: string } {
   const subject = `New match: ${listing.address} — $${listing.price.toLocaleString()}`
   const html = `

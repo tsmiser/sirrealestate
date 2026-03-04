@@ -5,8 +5,8 @@ import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
-import type { UserProfile, SearchResult, Viewing, UserDocument } from './types'
-import { viewingAgentResponseToBuyerEmail } from './email-templates'
+import type { UserProfile, SearchResult, Viewing, UserDocument, Offer } from './types'
+import { viewingAgentResponseToBuyerEmail, sellerDisclosureReceivedEmail } from './email-templates'
 import { buildListingUrl } from './mls/listing-url'
 import { classifyDocument } from './documents/classifier'
 
@@ -300,6 +300,144 @@ async function getDownloadUrl(userId: string, event: APIGatewayProxyEventV2): Pr
   return json(200, { downloadUrl })
 }
 
+async function findOfferByToken(token: string): Promise<Offer | null> {
+  const result = await dynamo.send(
+    new QueryCommand({
+      TableName: process.env.OFFERS_TABLE!,
+      IndexName: 'sellerResponseToken-index',
+      KeyConditionExpression: 'sellerResponseToken = :t',
+      ExpressionAttributeValues: { ':t': { S: token } },
+      Limit: 1,
+    }),
+  )
+  if (!result.Items || result.Items.length === 0) return null
+  return unmarshall(result.Items[0]) as Offer
+}
+
+async function getSellerResponseInfo(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const token = event.queryStringParameters?.['token']
+  if (!token) return json(400, { error: 'Missing token' })
+
+  const offer = await findOfferByToken(token)
+  if (!offer) return json(404, { error: 'Invalid or expired link' })
+
+  return json(200, {
+    listingAddress: offer.listingAddress,
+    propertyState: offer.propertyState,
+    disclosuresAlreadyUploaded: offer.sellerResponse?.disclosureDocumentIds?.length ?? 0,
+  })
+}
+
+async function getSellerUploadUrl(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const { token, fileName, contentType } = event.queryStringParameters ?? {}
+  if (!token || !fileName || !contentType) return json(400, { error: 'Missing required parameters' })
+
+  const offer = await findOfferByToken(token)
+  if (!offer) return json(404, { error: 'Invalid or expired link' })
+
+  const documentId = crypto.randomUUID()
+  const s3Key = `${offer.userId}/${documentId}`
+
+  const uploadUrl = await getSignedUrl(
+    s3,
+    new PutObjectCommand({
+      Bucket: process.env.DOCUMENT_BUCKET_NAME!,
+      Key: s3Key,
+      ContentType: contentType,
+    }),
+    { expiresIn: 300 },
+  )
+
+  return json(200, { uploadUrl, documentId, s3Key })
+}
+
+async function confirmSellerUpload(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const body = JSON.parse(event.body ?? '{}') as {
+    token?: string
+    documentId?: string
+    s3Key?: string
+    fileName?: string
+    contentType?: string
+    sizeBytes?: number
+  }
+  const { token, documentId, s3Key, fileName, contentType, sizeBytes } = body
+  if (!token || !documentId || !s3Key || !fileName || !contentType || sizeBytes === undefined) {
+    return json(400, { error: 'Missing required fields' })
+  }
+
+  const offer = await findOfferByToken(token)
+  if (!offer) return json(404, { error: 'Invalid or expired link' })
+
+  const now = new Date().toISOString()
+
+  // Store the document under the buyer's userId in the Documents table
+  const doc: UserDocument = {
+    userId: offer.userId,
+    documentId,
+    fileName,
+    contentType,
+    sizeBytes,
+    s3Key,
+    uploadedAt: now,
+    documentType: 'seller_disclosure',
+  }
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.DOCUMENTS_TABLE!,
+      Item: marshall(doc, { removeUndefinedValues: true }),
+    }),
+  )
+
+  // Update the offer's sellerResponse
+  const updatedOffer: Offer = {
+    ...offer,
+    sellerResponse: {
+      status: 'received',
+      disclosureDocumentIds: [
+        ...(offer.sellerResponse?.disclosureDocumentIds ?? []),
+        documentId,
+      ],
+      respondedAt: offer.sellerResponse?.respondedAt ?? now,
+    },
+    updatedAt: now,
+  }
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.OFFERS_TABLE!,
+      Item: marshall(updatedOffer, { removeUndefinedValues: true }),
+    }),
+  )
+
+  // Notify the buyer
+  const profileResult = await dynamo.send(
+    new GetItemCommand({
+      TableName: process.env.USER_PROFILE_TABLE!,
+      Key: { userId: { S: offer.userId } },
+      ProjectionExpression: 'email',
+    }),
+  )
+  const buyerEmail = profileResult.Item
+    ? (unmarshall(profileResult.Item) as Pick<UserProfile, 'email'>).email
+    : undefined
+
+  if (buyerEmail) {
+    const { subject, html } = sellerDisclosureReceivedEmail(
+      offer.listingAddress,
+      [fileName],
+      'https://app.sirrealtor.com/chat',
+    )
+    await ses.send(
+      new SendEmailCommand({
+        Source: 'noreply@sirrealtor.com',
+        Destination: { ToAddresses: [buyerEmail] },
+        Message: { Subject: { Data: subject }, Body: { Html: { Data: html } } },
+      }),
+    )
+  }
+
+  return json(200, { ok: true })
+}
+
 export async function handler(
   event: APIGatewayProxyEventV2,
 ): Promise<APIGatewayProxyResultV2> {
@@ -308,6 +446,9 @@ export async function handler(
   try {
     // Unauthenticated routes
     if (path === '/viewing-response') return recordViewingResponse(event)
+    if (path === '/seller-response' && event.requestContext.http.method === 'GET') return getSellerResponseInfo(event)
+    if (path === '/seller-response/upload-url') return getSellerUploadUrl(event)
+    if (path === '/seller-response/confirm') return confirmSellerUpload(event)
 
     // Authenticated routes — extract userId from JWT claims
     const claims = (event.requestContext as unknown as {
