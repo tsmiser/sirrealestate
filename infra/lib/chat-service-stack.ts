@@ -46,6 +46,7 @@ interface ChatServiceStackProps extends StackProps {
   searchWorkerLambda: lambda.IFunction
   documentBucket: s3.Bucket
   documentsTable: dynamodb.Table
+  offersTable: dynamodb.Table
 }
 
 export class ChatServiceStack extends Stack {
@@ -59,6 +60,7 @@ export class ChatServiceStack extends Stack {
       VIEWINGS_TABLE: props.viewingsTable.tableName,
       DOCUMENTS_TABLE: props.documentsTable.tableName,
       DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
+      OFFERS_TABLE: props.offersTable.tableName,
     }
 
     const bundlingOptions = { externalModules: [] as string[] }
@@ -99,6 +101,7 @@ export class ChatServiceStack extends Stack {
     // Grant chat Lambda read access to document bucket and documents table
     props.documentBucket.grantRead(chatLambda)
     props.documentsTable.grantReadData(chatLambda)
+    props.offersTable.grantReadWriteData(chatLambda)
 
     // SES permission for schedule_viewing tool
     chatLambda.addToRolePolicy(
@@ -130,6 +133,7 @@ export class ChatServiceStack extends Stack {
     props.viewingsTable.grantWriteData(dataLambda)
     props.documentsTable.grantReadWriteData(dataLambda)
     props.documentBucket.grantReadWrite(dataLambda)
+    props.offersTable.grantReadWriteData(dataLambda)
 
     // SES permission for buyer notification on agent response
     dataLambda.addToRolePolicy(

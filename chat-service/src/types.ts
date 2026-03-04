@@ -132,6 +132,103 @@ export interface UserDocument {
   extractedData?: Record<string, unknown>
 }
 
+// ---------------------------------------------------------------------------
+// Offer types
+// ---------------------------------------------------------------------------
+
+export type OfferStatus =
+  | 'draft'
+  | 'ready'
+  | 'submitted'
+  | 'accepted'
+  | 'countered'
+  | 'rejected'
+  | 'withdrawn'
+
+export interface OfferBuyer {
+  buyerId: string
+  fullLegalName: string
+  street: string
+  unit?: string
+  city: string
+  state: string
+  zipCode: string
+  phone: string
+  email: string
+  isPrimaryBuyer: boolean
+}
+
+export interface CashFinancing {
+  type: 'cash'
+  proofOfFundsDocumentIds: string[]
+}
+
+export interface FinancedFinancing {
+  type: 'financed'
+  preApprovalLetterDocumentId?: string
+  lenderName?: string
+  loanType?: string   // 'conventional' | 'fha' | 'va' | 'usda' | 'jumbo'
+  downPaymentAmount?: number
+  loanAmount?: number
+}
+
+export type OfferFinancing = CashFinancing | FinancedFinancing
+
+export interface OfferContingencies {
+  inspection: boolean
+  inspectionPeriodDays?: number   // Colorado default: 10
+  appraisal: boolean
+  financing: boolean
+  financingDeadlineDays?: number  // Colorado default: 21
+  saleOfExistingHome?: boolean
+}
+
+export interface PurchaseAgreementTerms {
+  offerPrice?: number
+  earnestMoneyAmount?: number
+  closingDate?: string            // ISO 8601 date
+  possessionDate?: string         // ISO 8601 date; often same as closingDate
+  contingencies: OfferContingencies
+  inclusions?: string[]           // appliances / fixtures included in sale
+  exclusions?: string[]           // items seller is keeping
+  sellerConcessions?: number      // seller-paid closing cost contribution
+}
+
+export type SellerResponseStatus = 'pending' | 'received' | 'accepted' | 'countered' | 'rejected'
+
+export interface SellerResponse {
+  status: SellerResponseStatus
+  disclosureDocumentIds?: string[]  // SR21 and any addenda uploaded by seller's agent
+  counterOfferPrice?: number
+  respondedAt?: string
+}
+
+export interface Offer {
+  userId: string
+  offerId: string
+  listingId: string
+  listingAddress: string
+  viewingId?: string              // the viewing that led to this offer
+  profileId?: string              // search profile the listing matched
+  status: OfferStatus
+  /** 2-letter state code — determines which form templates apply */
+  propertyState: string
+  buyers: OfferBuyer[]
+  financing?: OfferFinancing
+  terms?: PurchaseAgreementTerms
+  // Generated / signed document IDs (all stored in Documents table)
+  purchaseAgreementDocumentId?: string
+  earnestMoneyAgreementDocumentId?: string
+  agencyDisclosureDocumentId?: string
+  // Seller response — token enables unauthenticated upload by seller's agent
+  sellerResponseToken?: string
+  sellerResponse?: SellerResponse
+  createdAt: string
+  updatedAt: string
+  submittedAt?: string
+}
+
+// ---------------------------------------------------------------------------
 // Anthropic SDK compatible message types
 export interface TextContentBlock {
   type: 'text'

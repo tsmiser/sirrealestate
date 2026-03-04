@@ -10,6 +10,7 @@ export class DataStack extends Stack {
   readonly viewingsTable: dynamodb.Table
   readonly documentBucket: s3.Bucket
   readonly documentsTable: dynamodb.Table
+  readonly offersTable: dynamodb.Table
 
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props)
@@ -85,11 +86,26 @@ export class DataStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     })
 
+    this.offersTable = new dynamodb.Table(this, 'OffersTable', {
+      tableName: 'SirRealtor-Offers',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'offerId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN,
+    })
+    // Enables unauthenticated lookup by seller's agent response token
+    this.offersTable.addGlobalSecondaryIndex({
+      indexName: 'sellerResponseToken-index',
+      partitionKey: { name: 'sellerResponseToken', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    })
+
     new CfnOutput(this, 'UserProfileTableName', { value: this.userProfileTable.tableName })
     new CfnOutput(this, 'SearchResultsTableName', { value: this.searchResultsTable.tableName })
     new CfnOutput(this, 'NotificationsTableName', { value: this.notificationsTable.tableName })
     new CfnOutput(this, 'ViewingsTableName', { value: this.viewingsTable.tableName })
     new CfnOutput(this, 'DocumentBucketName', { value: this.documentBucket.bucketName })
     new CfnOutput(this, 'DocumentsTableName', { value: this.documentsTable.tableName })
+    new CfnOutput(this, 'OffersTableName', { value: this.offersTable.tableName })
   }
 }
