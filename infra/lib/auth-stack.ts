@@ -72,6 +72,8 @@ function invitationEmailBody(appDomain: string): string {
       An account has been created for you. Sign in with your email and the temporary password below, then choose a new password.
     </p>
     <div style="background:${BG};border-radius:10px;padding:20px 24px;margin:0 0 24px;">
+      <p style="margin:0 0 4px;font-size:12px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">Username</p>
+      <p style="margin:0 0 16px;font-size:15px;color:${TEXT};">{username}</p>
       <p style="margin:0 0 4px;font-size:12px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">Temporary password</p>
       <p style="margin:0;font-size:20px;font-weight:700;color:${TEXT};letter-spacing:2px;">{####}</p>
     </div>
