@@ -1,0 +1,183 @@
+import '@/style/global.css'
+
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { signUp, confirmSignUp, signIn } from 'aws-amplify/auth'
+import {
+  Alert,
+  AlertTitle,
+  Box,
+  Button,
+  Divider,
+  FormControl,
+  FormLabel,
+  Input,
+  Paper,
+  Typography,
+} from '@mui/material'
+import MuiLayerOverride from '@/theme/mui-layer-override'
+
+export default function SignUpPage() {
+  const navigate = useNavigate()
+  const [step, setStep] = useState<'credentials' | 'confirm'>('credentials')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password || !confirmPassword) {
+      setError('All fields are required.')
+      return
+    }
+    if (!email.toLowerCase().endsWith('@sirrealtor.com')) {
+      setError('Sign up is restricted to @sirrealtor.com email addresses.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    setError(null)
+    setLoading(true)
+    try {
+      await signUp({ username: email, password, options: { userAttributes: { email } } })
+      setStep('confirm')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sign-up failed. Please try again.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirm = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!code) {
+      setError('Verification code is required.')
+      return
+    }
+    setError(null)
+    setLoading(true)
+    try {
+      await confirmSignUp({ username: email, confirmationCode: code })
+      await signIn({ username: email, password })
+      navigate('/dashboard', { replace: true })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Verification failed. Please try again.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <MuiLayerOverride />
+      <Box className="flex min-h-screen w-full items-center justify-center bg-background p-4">
+        <Paper elevation={3} className="bg-background-paper shadow-darker-xs w-lg max-w-full rounded-4xl py-14">
+          <Box className="flex flex-col gap-10 px-8 sm:px-14">
+            <Box className="flex flex-col items-center gap-2">
+              <Typography variant="h5" className="font-heading font-bold tracking-tight text-primary">
+                Admin
+              </Typography>
+              <Typography variant="body2" className="text-text-secondary">
+                sirrealtor.com administration
+              </Typography>
+            </Box>
+
+            {step === 'credentials' ? (
+              <Box component="form" onSubmit={handleSignUp} className="flex flex-col gap-5">
+                <FormControl className="outlined" variant="standard" size="small">
+                  <FormLabel component="label" className="mb-0.5!">Email</FormLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@sirrealtor.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
+                </FormControl>
+
+                <FormControl className="outlined" variant="standard" size="small">
+                  <FormLabel component="label" className="mb-0.5!">Password</FormLabel>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                </FormControl>
+
+                <FormControl className="outlined" variant="standard" size="small">
+                  <FormLabel component="label" className="mb-0.5!">Confirm password</FormLabel>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                </FormControl>
+
+                {error && (
+                  <Alert severity="error" className="neutral bg-background-paper/60!">
+                    <AlertTitle variant="subtitle2">Sign-up error</AlertTitle>
+                    <Typography variant="body2">{error}</Typography>
+                  </Alert>
+                )}
+
+                <Button type="submit" variant="contained" disabled={loading} className="mt-2">
+                  {loading ? 'Creating account…' : 'Continue'}
+                </Button>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={handleConfirm} className="flex flex-col gap-5">
+                <Typography variant="body1" className="text-text-secondary">
+                  We sent a verification code to <strong>{email}</strong>. Enter it below.
+                </Typography>
+
+                <FormControl className="outlined" variant="standard" size="small">
+                  <FormLabel component="label" className="mb-0.5!">Verification code</FormLabel>
+                  <Input
+                    id="code"
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    disabled={loading}
+                  />
+                </FormControl>
+
+                {error && (
+                  <Alert severity="error" className="neutral bg-background-paper/60!">
+                    <AlertTitle variant="subtitle2">Verification error</AlertTitle>
+                    <Typography variant="body2">{error}</Typography>
+                  </Alert>
+                )}
+
+                <Button type="submit" variant="contained" disabled={loading} className="mt-2">
+                  {loading ? 'Verifying…' : 'Verify & Sign In'}
+                </Button>
+              </Box>
+            )}
+
+            <Divider className="text-text-secondary my-0 text-sm" />
+
+            <Box className="flex flex-col">
+              <Typography variant="h6" component="h6">Sign in</Typography>
+              <Typography variant="body1" className="text-text-secondary">
+                Already have an account?{' '}
+                <Link to="/login" className="link-primary link-underline-hover">Sign in</Link>
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
+    </>
+  )
+}

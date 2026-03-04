@@ -1,0 +1,47 @@
+name: Deploy Admin Service
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - admin-service/**
+
+concurrency:
+  group: cdk-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: CDK Deploy SirRealtor-AdminService
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck admin-service
+        run: pnpm --filter admin-service typecheck
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: CDK deploy admin service stack
+        run: pnpm --filter infra exec -- cdk deploy SirRealtor-AdminService --require-approval never -c prodAccount=${{ secrets.AWS_ACCOUNT_ID }}
