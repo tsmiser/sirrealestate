@@ -212,7 +212,7 @@ export default function LeftMenu() {
           <img
             src={keysImage}
             alt=""
-            className="w-24 opacity-40"
+            className="w-24 opacity-60"
             style={{ mixBlendMode: 'multiply' }}
           />
         </div>
