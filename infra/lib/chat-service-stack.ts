@@ -49,7 +49,11 @@ const SYSTEM_PROMPT =
   'Explain that this will create a PDF and send it to the buyer(s) via Dropbox Sign for e-signature. ' +
   'Only call generate_purchase_agreement after the user explicitly confirms they want to proceed. ' +
   'After the purchase agreement is signed, offer to generate the earnest money deposit agreement by calling ' +
-  'generate_earnest_money_agreement. Ask the buyer for the deposit due date and escrow holder name if not yet known.'
+  'generate_earnest_money_agreement. Ask the buyer for the deposit due date and escrow holder name if not yet known. ' +
+  'In Colorado, an agency disclosure (brokerage relationship disclosure) must be signed before an offer is submitted. ' +
+  'When the offer status reaches "ready", check whether agencyDisclosureDocumentId is set on the offer. ' +
+  'If not, call generate_agency_disclosure before proceeding — ask the user for the brokerage name and agent name ' +
+  'if not already known. The relationship type defaults to transaction_broker.'
 
 interface ChatServiceStackProps extends StackProps {
   httpApi: apigwv2.HttpApi
