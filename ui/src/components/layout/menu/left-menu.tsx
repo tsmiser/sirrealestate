@@ -11,6 +11,7 @@ import NiListSquare from '@/icons/nexture/ni-list-square'
 import NiDuplicate from '@/icons/nexture/ni-duplicate'
 import NiMenuSplit from '@/icons/nexture/ni-menu-split'
 import NiChevronRightSmall from '@/icons/nexture/ni-chevron-right-small'
+import KeysDecoration from '@/components/sidebar/KeysDecoration'
 import ProfilePanel from '@/components/sidebar/ProfilePanel'
 import SearchProfileCard from '@/components/sidebar/SearchProfileCard'
 import ViewingCard from '@/components/sidebar/ViewingCard'
@@ -203,6 +204,10 @@ export default function LeftMenu() {
             Coming soon
           </Typography>
         </SidebarSection>
+
+        <div className="flex justify-center py-4">
+          <KeysDecoration className="w-24 opacity-35" />
+        </div>
       </Box>
     </nav>
   )
