@@ -89,10 +89,14 @@ export async function execute(
     paDownloadUrl,
     sellerResponseUrl,
   )
+  const bcc = process.env.AGENT_EMAIL_BCC
   await ses.send(
     new SendEmailCommand({
       Source: 'noreply@sirrealtor.com',
-      Destination: { ToAddresses: [offer.agentEmail] },
+      Destination: {
+        ToAddresses: [offer.agentEmail],
+        ...(bcc ? { BccAddresses: [bcc] } : {}),
+      },
       Message: { Subject: { Data: agentSubject }, Body: { Html: { Data: agentHtml } } },
     }),
   )

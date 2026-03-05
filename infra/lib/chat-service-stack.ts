@@ -72,6 +72,7 @@ export class ChatServiceStack extends Stack {
         ANTHROPIC_API_KEY_SECRET_ARN: anthropicApiKeySecret.secretArn,
         DROPBOX_SIGN_API_KEY_SECRET_ARN: dropboxSignApiKeySecret.secretArn,
         EARNNEST_API_KEY_SECRET_ARN: earnnestApiKeySecret.secretArn,
+        AGENT_EMAIL_BCC: 'noreply@sirrealtor.com',
         SEARCH_WORKER_FUNCTION_NAME: props.searchWorkerLambda.functionName,
         ...tableEnv,
       },
