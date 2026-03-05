@@ -69,9 +69,9 @@ function SidebarSection({
 
 export default function LeftMenu() {
   const { sidebarOpen, sidebarWidth } = useLayoutContext()
-  const { registerProfileRefetch, registerSearchResultsRefetch, registerDocumentsRefetch, registerOffersRefetch } = useSidebarRefresh()
+  const { registerProfileRefetch, registerSearchResultsRefetch, registerDocumentsRefetch, registerOffersRefetch, setNewListingsCount } = useSidebarRefresh()
   const { profile, refetch: refetchProfile } = useUserProfile()
-  const { grouped, refetch: refetchSearchResults } = useSearchResults()
+  const { results, grouped, refetch: refetchSearchResults } = useSearchResults()
   const { viewings, refetch: refetchViewings } = useViewings()
   const { documents, refetch: refetchDocuments } = useDocuments()
   const { offers, refetch: refetchOffers } = useOffers()
@@ -91,6 +91,10 @@ export default function LeftMenu() {
   useEffect(() => {
     registerOffersRefetch(refetchOffers)
   }, [registerOffersRefetch, refetchOffers])
+
+  useEffect(() => {
+    setNewListingsCount(results.filter((r) => !r.notified).length)
+  }, [results, setNewListingsCount])
 
   useEffect(() => {
     if (!sidebarOpen) return
@@ -141,9 +145,15 @@ export default function LeftMenu() {
         </SidebarSection>
 
         <SidebarSection
+          title="My Documents"
+          icon={<NiListSquare size="small" />}
+        >
+          <DocumentPanel documentList={documents} />
+        </SidebarSection>
+
+        <SidebarSection
           title="My Searches"
           icon={<NiSearch size="small" />}
-          defaultOpen
           contentClassName="flex flex-col gap-1 px-2 pb-3 pt-0"
         >
           {!profile || profile.searchProfiles.length === 0 ? (
@@ -159,13 +169,6 @@ export default function LeftMenu() {
               />
             ))
           )}
-        </SidebarSection>
-
-        <SidebarSection
-          title="My Documents"
-          icon={<NiListSquare size="small" />}
-        >
-          <DocumentPanel documentList={documents} />
         </SidebarSection>
 
         <SidebarSection

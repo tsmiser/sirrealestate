@@ -1,4 +1,4 @@
-import { createContext, type PropsWithChildren, useContext, useRef, useCallback } from 'react'
+import { createContext, type PropsWithChildren, useContext, useRef, useCallback, useState } from 'react'
 
 type RefreshFn = () => void
 
@@ -11,6 +11,8 @@ type SidebarRefreshContextType = {
   registerSearchResultsRefetch: (fn: RefreshFn) => void
   registerDocumentsRefetch: (fn: RefreshFn) => void
   registerOffersRefetch: (fn: RefreshFn) => void
+  newListingsCount: number
+  setNewListingsCount: (n: number) => void
 }
 
 const SidebarRefreshContext = createContext<SidebarRefreshContextType | null>(null)
@@ -20,6 +22,7 @@ export function SidebarRefreshProvider({ children }: PropsWithChildren) {
   const searchResultsRefetchRef = useRef<RefreshFn | null>(null)
   const documentsRefetchRef = useRef<RefreshFn | null>(null)
   const offersRefetchRef = useRef<RefreshFn | null>(null)
+  const [newListingsCount, setNewListingsCount] = useState(0)
 
   const invalidateProfile = useCallback(() => { profileRefetchRef.current?.() }, [])
   const invalidateSearchResults = useCallback(() => { searchResultsRefetchRef.current?.() }, [])
@@ -42,6 +45,8 @@ export function SidebarRefreshProvider({ children }: PropsWithChildren) {
         registerSearchResultsRefetch,
         registerDocumentsRefetch,
         registerOffersRefetch,
+        newListingsCount,
+        setNewListingsCount,
       }}
     >
       {children}

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Avatar, Box, Button, Menu, MenuItem, Typography } from '@mui/material'
+import { Avatar, Badge, Box, Button, Menu, MenuItem, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
+import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
 import logo from '@/assets/logo.png'
 import NiMenuSplit from '@/icons/nexture/ni-menu-split'
+import NiBell from '@/icons/nexture/ni-bell'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserProfile } from '@/hooks/useUserProfile'
 
@@ -13,6 +15,7 @@ export default function Header() {
   const { email, signOut } = useAuth()
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const { profile, refetch: refetchProfile } = useUserProfile()
+  const { newListingsCount } = useSidebarRefresh()
 
   useEffect(() => { refetchProfile() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -44,6 +47,23 @@ export default function Header() {
             </Typography>
           </Link>
         </Box>
+
+        {/* Notifications bell */}
+        <Badge
+          badgeContent={newListingsCount > 0 ? newListingsCount : null}
+          color="error"
+          max={99}
+          sx={{ mr: 1.5 }}
+        >
+          <Button
+            variant="text"
+            size="medium"
+            color="grey"
+            className="icon-only"
+            onClick={toggleSidebar}
+            startIcon={<NiBell size="medium" />}
+          />
+        </Badge>
 
         {/* User avatar */}
         <Avatar
