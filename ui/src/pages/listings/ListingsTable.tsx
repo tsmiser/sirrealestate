@@ -1,5 +1,7 @@
+import { Box } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import type { SearchResult } from '@/hooks/useSearchResults'
+import { streetViewUrl } from '@/lib/streetview'
 
 interface ListingsTableProps {
   results: SearchResult[]
@@ -8,6 +10,33 @@ interface ListingsTableProps {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const columns: GridColDef<any>[] = [
+  {
+    field: 'photo',
+    headerName: '',
+    width: 96,
+    sortable: false,
+    filterable: false,
+    disableColumnMenu: true,
+    renderCell: (params) => {
+      const result = params.row as SearchResult
+      const { latitude, longitude } = result.listingData
+      const url = latitude != null && longitude != null
+        ? streetViewUrl(latitude, longitude, 160, 100)
+        : null
+      return (
+        <Box sx={{ width: 80, height: 54, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.100', flexShrink: 0 }}>
+          {url && (
+            <img
+              src={url}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+          )}
+        </Box>
+      )
+    },
+  },
   {
     field: 'address',
     headerName: 'Address',
@@ -64,6 +93,7 @@ export default function ListingsTable({ results, onListingClick }: ListingsTable
     <DataGrid
       rows={rows}
       columns={columns}
+      rowHeight={66}
       pageSizeOptions={[25, 50, 100]}
       initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
       onRowClick={(params) => onListingClick(params.row as SearchResult)}
