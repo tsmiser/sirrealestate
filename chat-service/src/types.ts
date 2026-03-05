@@ -80,17 +80,23 @@ export type NotificationType =
   | 'viewing_confirmation'
   | 'viewing_feedback_request'
 
-export type NotificationChannel = 'email' | 'sms_placeholder' | 'push_placeholder'
+export type NotificationChannel = 'email' | 'sms' | 'push'
+
+/** 'to_user' = sent to the buyer (e.g. listing match, confirmation).
+ *  'on_behalf_of_user' = sent on the buyer's behalf (e.g. viewing request to agent). */
+export type NotificationDirection = 'to_user' | 'on_behalf_of_user'
 
 export interface Notification {
   userId: string
   notificationId: string
   type: NotificationType
   channel: NotificationChannel
+  direction?: NotificationDirection
   recipientAddress: string
   subject: string
+  body?: string
   sentAt: string
-  status: string
+  status: 'sent' | 'failed'
 }
 
 export type ViewingStatus = 'requested' | 'confirmed' | 'completed' | 'cancelled'

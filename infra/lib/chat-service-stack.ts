@@ -127,6 +127,7 @@ export class ChatServiceStack extends Stack {
     dropboxSignApiKeySecret.grantRead(dataLambda)
     earnnestApiKeySecret.grantRead(dataLambda)
     props.userProfileTable.grantReadWriteData(dataLambda)
+    props.notificationsTable.grantReadData(dataLambda)
     props.searchResultsTable.grantReadData(dataLambda)
     props.viewingsTable.grantReadData(dataLambda)
     props.viewingsTable.grantWriteData(dataLambda)
@@ -166,6 +167,13 @@ export class ChatServiceStack extends Stack {
     new apigwv2.HttpRoute(this, 'OffersRoute', {
       httpApi: props.httpApi,
       routeKey: apigwv2.HttpRouteKey.with('/offers', apigwv2.HttpMethod.GET),
+      integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
+    })
+
+    new apigwv2.HttpRoute(this, 'NotificationsRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/notifications', apigwv2.HttpMethod.GET),
       integration: dataIntegration,
       authorizer: cognitoAuthorizer,
     })

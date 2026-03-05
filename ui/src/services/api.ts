@@ -66,6 +66,10 @@ export const offers = {
   list: () => api.get<{ offers: Offer[] }>('/offers'),
 }
 
+export const notifications = {
+  list: () => api.get<{ notifications: unknown[] }>('/notifications'),
+}
+
 export const documents = {
   list: () => api.get<{ documents: UserDocument[] }>('/documents'),
   getUploadUrl: (fileName: string, contentType: string) =>

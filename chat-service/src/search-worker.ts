@@ -154,11 +154,13 @@ async function processSearchProfile(
   const notificationChannel = searchProfile.notificationPreferences.email ? 'email' : null
   if (notificationChannel && user.email) {
     for (const listing of enrichedListings) {
+      const { subject, html } = newListingMatchEmail(listing as import('./types').Listing, chatUrl)
+      let sendStatus: 'sent' | 'failed' = 'failed'
       try {
-        const { subject, html } = newListingMatchEmail(listing as import('./types').Listing, chatUrl)
         await sendNotification('email', { to: user.email, subject, html })
+        sendStatus = 'sent'
 
-        // Mark as notified
+        // Only mark as notified when the email actually sent
         await dynamo.send(
           new UpdateItemCommand({
             TableName: process.env.SEARCH_RESULTS_TABLE!,
@@ -170,26 +172,32 @@ async function processSearchProfile(
             ExpressionAttributeValues: { ':true': { BOOL: true } },
           }),
         )
+      } catch (err) {
+        console.error(`Failed to send notification for listing ${listing.listingId}`, err)
+      }
 
-        // Record notification
+      // Record the notification attempt regardless of send success
+      try {
         const notification: Notification = {
           userId: user.userId,
           notificationId: randomUUID(),
           type: 'new_listing',
           channel: 'email',
+          direction: 'to_user',
           recipientAddress: user.email,
           subject,
+          body: html,
           sentAt: now,
-          status: 'sent',
+          status: sendStatus,
         }
         await dynamo.send(
           new PutItemCommand({
             TableName: process.env.NOTIFICATIONS_TABLE!,
-            Item: marshall(notification),
+            Item: marshall(notification, { removeUndefinedValues: true }),
           }),
         )
       } catch (err) {
-        console.error(`Failed to send notification for listing ${listing.listingId}`, err)
+        console.error(`Failed to record notification for listing ${listing.listingId}`, err)
       }
     }
   }

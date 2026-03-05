@@ -103,53 +103,68 @@ export async function execute(
   )
 
   const chatUrl = `https://app.sirrealtor.com/chat`
-  const notificationId = randomUUID()
 
-  // Email the seller's agent if we have their contact
+  // Email the seller's agent and record the notification regardless of send success
   if (agentEmail) {
-    const { subject, html } = viewingRequestToAgentEmail(viewing, userEmail, buyerName, input.availabilitySlots)
-    await ses.send(
-      new SendEmailCommand({
+    const { subject: agentSubject, html: agentHtml } = viewingRequestToAgentEmail(viewing, userEmail, buyerName, input.availabilitySlots)
+    let agentStatus: 'sent' | 'failed' = 'failed'
+    try {
+      await ses.send(new SendEmailCommand({
         Source: 'noreply@sirrealtor.com',
         Destination: { ToAddresses: [agentEmail] },
-        Message: {
-          Subject: { Data: subject },
-          Body: { Html: { Data: html } },
-        },
-      }),
-    )
+        Message: { Subject: { Data: agentSubject }, Body: { Html: { Data: agentHtml } } },
+      }))
+      agentStatus = 'sent'
+    } catch (err) {
+      console.error('Failed to email agent for viewing request', err)
+    }
+    const agentNotification: Notification = {
+      userId,
+      notificationId: randomUUID(),
+      type: 'viewing_request',
+      channel: 'email',
+      direction: 'on_behalf_of_user',
+      recipientAddress: agentEmail,
+      subject: agentSubject,
+      body: agentHtml,
+      sentAt: now,
+      status: agentStatus,
+    }
+    await dynamo.send(new PutItemCommand({
+      TableName: process.env.NOTIFICATIONS_TABLE!,
+      Item: marshall(agentNotification, { removeUndefinedValues: true }),
+    }))
   }
 
-  // Email confirmation to buyer
+  // Email confirmation to buyer and record the notification regardless of send success
   const { subject: confirmSubject, html: confirmHtml } = viewingConfirmationToBuyerEmail(viewing, chatUrl)
-  await ses.send(
-    new SendEmailCommand({
+  let buyerStatus: 'sent' | 'failed' = 'failed'
+  try {
+    await ses.send(new SendEmailCommand({
       Source: 'noreply@sirrealtor.com',
       Destination: { ToAddresses: [userEmail] },
-      Message: {
-        Subject: { Data: confirmSubject },
-        Body: { Html: { Data: confirmHtml } },
-      },
-    }),
-  )
-
-  // Record the notification
-  const notification: Notification = {
+      Message: { Subject: { Data: confirmSubject }, Body: { Html: { Data: confirmHtml } } },
+    }))
+    buyerStatus = 'sent'
+  } catch (err) {
+    console.error('Failed to send viewing confirmation to buyer', err)
+  }
+  const buyerNotification: Notification = {
     userId,
-    notificationId,
-    type: 'viewing_request',
+    notificationId: randomUUID(),
+    type: 'viewing_confirmation',
     channel: 'email',
+    direction: 'to_user',
     recipientAddress: userEmail,
     subject: confirmSubject,
+    body: confirmHtml,
     sentAt: now,
-    status: 'sent',
+    status: buyerStatus,
   }
-  await dynamo.send(
-    new PutItemCommand({
-      TableName: process.env.NOTIFICATIONS_TABLE!,
-      Item: marshall(notification),
-    }),
-  )
+  await dynamo.send(new PutItemCommand({
+    TableName: process.env.NOTIFICATIONS_TABLE!,
+    Item: marshall(buyerNotification, { removeUndefinedValues: true }),
+  }))
 
   const agentMsg = agentEmail
     ? ` Request sent to ${agentName ?? 'the agent'} at ${agentEmail}.`

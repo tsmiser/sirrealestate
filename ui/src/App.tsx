@@ -8,6 +8,7 @@ import SignUpPage from '@/pages/SignUpPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 import ViewingResponsePage from '@/pages/ViewingResponsePage'
 import SellerResponsePage from '@/pages/SellerResponsePage'
+import NotificationsPage from '@/pages/NotificationsPage'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         >
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/listings/:profileId" element={<ListingsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
