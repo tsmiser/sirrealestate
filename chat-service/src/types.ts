@@ -212,6 +212,8 @@ export interface Offer {
   listingAddress: string
   viewingId?: string              // the viewing that led to this offer
   profileId?: string              // search profile the listing matched
+  agentEmail?: string             // seller's agent email — used when submitting the offer
+  agentName?: string              // seller's agent name
   status: OfferStatus
   /** 2-letter state code — determines which form templates apply */
   propertyState: string

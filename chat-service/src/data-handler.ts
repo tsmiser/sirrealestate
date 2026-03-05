@@ -6,7 +6,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
 import type { UserProfile, SearchResult, Viewing, UserDocument, Offer } from './types'
-import { viewingAgentResponseToBuyerEmail, sellerDisclosureReceivedEmail } from './email-templates'
+import { viewingAgentResponseToBuyerEmail, sellerDisclosureReceivedEmail, sellerDecisionEmail } from './email-templates'
 import { buildListingUrl } from './mls/listing-url'
 import { classifyDocument } from './documents/classifier'
 import { handleDropboxSignWebhook } from './webhooks/dropbox-sign'
@@ -340,6 +340,8 @@ async function getSellerResponseInfo(event: APIGatewayProxyEventV2): Promise<API
     listingAddress: offer.listingAddress,
     propertyState: offer.propertyState,
     disclosuresAlreadyUploaded: offer.sellerResponse?.disclosureDocumentIds?.length ?? 0,
+    purchaseAgreementAvailable: !!offer.purchaseAgreementDocumentId,
+    sellerDecisionStatus: offer.sellerResponse?.status ?? null,
   })
 }
 
@@ -453,6 +455,88 @@ async function confirmSellerUpload(event: APIGatewayProxyEventV2): Promise<APIGa
   return json(200, { ok: true })
 }
 
+async function getSellerDownloadPaUrl(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const { token } = event.queryStringParameters ?? {}
+  if (!token) return json(400, { error: 'Missing token' })
+
+  const offer = await findOfferByToken(token)
+  if (!offer) return json(404, { error: 'Invalid or expired link' })
+  if (!offer.purchaseAgreementDocumentId) return json(404, { error: 'No purchase agreement available' })
+
+  const s3Key = `${offer.userId}/${offer.purchaseAgreementDocumentId}`
+  const downloadUrl = await getSignedUrl(
+    s3,
+    new GetObjectCommand({ Bucket: process.env.DOCUMENT_BUCKET_NAME!, Key: s3Key }),
+    { expiresIn: 900 },
+  )
+  return json(200, { downloadUrl })
+}
+
+async function recordSellerDecision(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const body = JSON.parse(event.body ?? '{}') as {
+    token?: string
+    decision?: string
+    counterOfferPrice?: number
+  }
+  const { token, decision, counterOfferPrice } = body
+  if (!token || !decision) return json(400, { error: 'Missing token or decision' })
+  if (!['accepted', 'countered', 'rejected'].includes(decision)) return json(400, { error: 'Invalid decision' })
+
+  const offer = await findOfferByToken(token)
+  if (!offer) return json(404, { error: 'Invalid or expired link' })
+  if (offer.status !== 'submitted') return json(400, { error: 'Offer is not in submitted state' })
+
+  const dec = decision as 'accepted' | 'countered' | 'rejected'
+  const now = new Date().toISOString()
+  const updatedOffer: Offer = {
+    ...offer,
+    status: dec,
+    sellerResponse: {
+      ...offer.sellerResponse,
+      status: dec,
+      counterOfferPrice: dec === 'countered' ? counterOfferPrice : undefined,
+      respondedAt: now,
+    },
+    updatedAt: now,
+  }
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.OFFERS_TABLE!,
+      Item: marshall(updatedOffer, { removeUndefinedValues: true }),
+    }),
+  )
+
+  // Notify the buyer
+  const profileResult = await dynamo.send(
+    new GetItemCommand({
+      TableName: process.env.USER_PROFILE_TABLE!,
+      Key: { userId: { S: offer.userId } },
+      ProjectionExpression: 'email',
+    }),
+  )
+  const buyerEmail = profileResult.Item
+    ? (unmarshall(profileResult.Item) as Pick<UserProfile, 'email'>).email
+    : undefined
+
+  if (buyerEmail) {
+    const { subject, html } = sellerDecisionEmail(
+      offer.listingAddress,
+      dec,
+      counterOfferPrice,
+      'https://app.sirrealtor.com/chat',
+    )
+    await ses.send(
+      new SendEmailCommand({
+        Source: 'noreply@sirrealtor.com',
+        Destination: { ToAddresses: [buyerEmail] },
+        Message: { Subject: { Data: subject }, Body: { Html: { Data: html } } },
+      }),
+    )
+  }
+
+  return json(200, { ok: true })
+}
+
 export async function handler(
   event: APIGatewayProxyEventV2,
 ): Promise<APIGatewayProxyResultV2> {
@@ -464,6 +548,8 @@ export async function handler(
     if (path === '/seller-response' && event.requestContext.http.method === 'GET') return getSellerResponseInfo(event)
     if (path === '/seller-response/upload-url') return getSellerUploadUrl(event)
     if (path === '/seller-response/confirm') return confirmSellerUpload(event)
+    if (path === '/seller-response/download-pa' && event.requestContext.http.method === 'GET') return getSellerDownloadPaUrl(event)
+    if (path === '/seller-response/decision' && event.requestContext.http.method === 'POST') return recordSellerDecision(event)
     if (path === '/webhooks/dropbox-sign' && event.requestContext.http.method === 'POST') {
       const ack = await handleDropboxSignWebhook(event.body ?? '')
       return { statusCode: 200, headers: { 'Content-Type': 'text/plain' }, body: ack }

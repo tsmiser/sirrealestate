@@ -94,6 +94,14 @@ export const definition = {
         type: 'boolean',
         description: 'Offer is contingent on the buyer selling their current home.',
       },
+      agentEmail: {
+        type: 'string',
+        description: "Seller's agent email address — required before calling submit_offer.",
+      },
+      agentName: {
+        type: 'string',
+        description: "Seller's agent full name.",
+      },
     },
     required: ['offerId'],
   },
@@ -123,6 +131,8 @@ interface UpdateOfferInput {
   financingContingency?: boolean
   financingDeadlineDays?: number
   saleOfExistingHomeContingency?: boolean
+  agentEmail?: string
+  agentName?: string
 }
 
 export async function execute(
@@ -143,6 +153,10 @@ export async function execute(
 
   // Status
   if (input.status !== undefined) offer.status = input.status
+
+  // Agent info
+  if (input.agentEmail !== undefined) offer.agentEmail = input.agentEmail
+  if (input.agentName !== undefined) offer.agentName = input.agentName
 
   // Buyers — full replacement; generate missing buyerIds
   if (input.buyers !== undefined) {

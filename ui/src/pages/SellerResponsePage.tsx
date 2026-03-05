@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Box, Button, CircularProgress, LinearProgress, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, Divider, LinearProgress, TextField, Typography } from '@mui/material'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -8,6 +8,8 @@ interface OfferInfo {
   listingAddress: string
   propertyState: string
   disclosuresAlreadyUploaded: number
+  purchaseAgreementAvailable: boolean
+  sellerDecisionStatus: string | null
 }
 
 interface UploadedFile {
@@ -16,6 +18,7 @@ interface UploadedFile {
 }
 
 type PageState = 'loading' | 'ready' | 'uploading' | 'done' | 'error'
+type DecisionState = 'idle' | 'countering' | 'submitting' | 'submitted'
 
 export default function SellerResponsePage() {
   const [searchParams] = useSearchParams()
@@ -27,6 +30,10 @@ export default function SellerResponsePage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [decisionState, setDecisionState] = useState<DecisionState>('idle')
+  const [counterPrice, setCounterPrice] = useState('')
+  const [decisionError, setDecisionError] = useState('')
 
   useEffect(() => {
     if (!token) {
@@ -126,6 +133,43 @@ export default function SellerResponsePage() {
     }
   }
 
+  const handleDownloadPa = async () => {
+    const res = await fetch(
+      `${API_URL}/seller-response/download-pa?token=${encodeURIComponent(token)}`,
+    )
+    if (!res.ok) return
+    const { downloadUrl } = await res.json() as { downloadUrl: string }
+    window.open(downloadUrl, '_blank')
+  }
+
+  const handleDecision = async (decision: 'accepted' | 'countered' | 'rejected') => {
+    setDecisionError('')
+    if (decision === 'countered') {
+      const price = parseFloat(counterPrice.replace(/,/g, ''))
+      if (!counterPrice || isNaN(price) || price <= 0) {
+        setDecisionError('Please enter a valid counter offer price.')
+        return
+      }
+    }
+    setDecisionState('submitting')
+    try {
+      const res = await fetch(`${API_URL}/seller-response/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          decision,
+          counterOfferPrice: decision === 'countered' ? parseFloat(counterPrice.replace(/,/g, '')) : undefined,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      setDecisionState('submitted')
+    } catch {
+      setDecisionError('Failed to record decision. Please try again.')
+      setDecisionState(decision === 'countered' ? 'countering' : 'idle')
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -145,7 +189,7 @@ export default function SellerResponsePage() {
             SirRealtor
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Seller Disclosure Upload
+            Seller Response Portal
           </Typography>
         </Box>
 
@@ -182,14 +226,30 @@ export default function SellerResponsePage() {
           {/* Ready to upload */}
           {(pageState === 'ready' || pageState === 'uploading') && offerInfo && (
             <>
-              <Typography variant="h6" fontWeight={700} gutterBottom>
-                Upload Seller's Disclosure
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                 Property
               </Typography>
               <Typography variant="body1" fontWeight={600} sx={{ mb: 3 }}>
                 {offerInfo.listingAddress}
+              </Typography>
+
+              {/* Download Purchase Agreement */}
+              {offerInfo.purchaseAgreementAvailable && (
+                <Box sx={{ mb: 3 }}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => void handleDownloadPa()}
+                  >
+                    Download Purchase Agreement
+                  </Button>
+                </Box>
+              )}
+
+              <Divider sx={{ mb: 3 }} />
+
+              <Typography variant="h6" fontWeight={700} gutterBottom>
+                Upload Seller's Disclosure
               </Typography>
 
               {offerInfo.disclosuresAlreadyUploaded > 0 && (
@@ -263,18 +323,123 @@ export default function SellerResponsePage() {
                   </Button>
                 </>
               )}
+
+              {/* Offer Decision */}
+              {offerInfo.sellerDecisionStatus && ['accepted', 'countered', 'rejected'].includes(offerInfo.sellerDecisionStatus) ? (
+                <Box sx={{ mt: 3 }}>
+                  <Divider sx={{ mb: 3 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Decision already recorded: <strong>{offerInfo.sellerDecisionStatus}</strong>.
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ mt: 3 }}>
+                  <Divider sx={{ mb: 3 }} />
+                  <Typography variant="h6" fontWeight={700} gutterBottom>
+                    Respond to Offer
+                  </Typography>
+                  {decisionState === 'submitted' ? (
+                    <Typography variant="body2" color="success.main" fontWeight={600}>
+                      Your response has been recorded. The buyer has been notified.
+                    </Typography>
+                  ) : decisionState === 'countering' ? (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Enter your counter offer price:
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        label="Counter Offer Price ($)"
+                        value={counterPrice}
+                        onChange={(e) => setCounterPrice(e.target.value)}
+                        size="small"
+                        sx={{ mb: 2 }}
+                        placeholder="e.g. 525000"
+                      />
+                      {decisionError && (
+                        <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+                          {decisionError}
+                        </Typography>
+                      )}
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          sx={{ bgcolor: '#d97706', '&:hover': { bgcolor: '#b45309' } }}
+                          onClick={() => void handleDecision('countered')}
+                        >
+                          Submit Counter
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={() => { setDecisionState('idle'); setDecisionError('') }}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {decisionError && (
+                        <Typography variant="body2" color="error">
+                          {decisionError}
+                        </Typography>
+                      )}
+                      <Button
+                        variant="contained"
+                        sx={{ bgcolor: '#16a34a', '&:hover': { bgcolor: '#15803d' } }}
+                        onClick={() => void handleDecision('accepted')}
+                        disabled={decisionState === 'submitting'}
+                      >
+                        Accept Offer
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        sx={{ borderColor: '#d97706', color: '#d97706', '&:hover': { borderColor: '#b45309', bgcolor: '#fef3c7' } }}
+                        onClick={() => setDecisionState('countering')}
+                      >
+                        Make Counter Offer
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => void handleDecision('rejected')}
+                        disabled={decisionState === 'submitting'}
+                      >
+                        Decline Offer
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              )}
             </>
           )}
 
           {/* Success */}
           {pageState === 'done' && offerInfo && (
             <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Property
+              </Typography>
+              <Typography variant="body1" fontWeight={600} sx={{ mb: 3 }}>
+                {offerInfo.listingAddress}
+              </Typography>
+
+              {offerInfo.purchaseAgreementAvailable && (
+                <Box sx={{ mb: 3 }}>
+                  <Button variant="outlined" fullWidth onClick={() => void handleDownloadPa()}>
+                    Download Purchase Agreement
+                  </Button>
+                </Box>
+              )}
+
+              <Divider sx={{ mb: 3 }} />
+
               <Typography variant="h6" fontWeight={700} gutterBottom>
                 Documents Received
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 The following document{uploadedFiles.length === 1 ? '' : 's'} have been uploaded
-                for <strong>{offerInfo.listingAddress}</strong> and the buyer has been notified.
+                and the buyer has been notified.
               </Typography>
               <Box sx={{ mb: 3 }}>
                 {uploadedFiles.map((f) => (
@@ -283,12 +448,10 @@ export default function SellerResponsePage() {
                   </Typography>
                 ))}
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Need to upload additional documents?
-              </Typography>
               <Button
                 variant="outlined"
                 fullWidth
+                sx={{ mb: 3 }}
                 onClick={() => {
                   setErrorMessage('')
                   setPageState('ready')
@@ -296,6 +459,94 @@ export default function SellerResponsePage() {
               >
                 Upload More Documents
               </Button>
+
+              {/* Offer Decision */}
+              {offerInfo.sellerDecisionStatus && ['accepted', 'countered', 'rejected'].includes(offerInfo.sellerDecisionStatus) ? (
+                <Box>
+                  <Divider sx={{ mb: 3 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Decision already recorded: <strong>{offerInfo.sellerDecisionStatus}</strong>.
+                  </Typography>
+                </Box>
+              ) : (
+                <Box>
+                  <Divider sx={{ mb: 3 }} />
+                  <Typography variant="h6" fontWeight={700} gutterBottom>
+                    Respond to Offer
+                  </Typography>
+                  {decisionState === 'submitted' ? (
+                    <Typography variant="body2" color="success.main" fontWeight={600}>
+                      Your response has been recorded. The buyer has been notified.
+                    </Typography>
+                  ) : decisionState === 'countering' ? (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Enter your counter offer price:
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        label="Counter Offer Price ($)"
+                        value={counterPrice}
+                        onChange={(e) => setCounterPrice(e.target.value)}
+                        size="small"
+                        sx={{ mb: 2 }}
+                        placeholder="e.g. 525000"
+                      />
+                      {decisionError && (
+                        <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+                          {decisionError}
+                        </Typography>
+                      )}
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          sx={{ bgcolor: '#d97706', '&:hover': { bgcolor: '#b45309' } }}
+                          onClick={() => void handleDecision('countered')}
+                        >
+                          Submit Counter
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={() => { setDecisionState('idle'); setDecisionError('') }}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {decisionError && (
+                        <Typography variant="body2" color="error">
+                          {decisionError}
+                        </Typography>
+                      )}
+                      <Button
+                        variant="contained"
+                        sx={{ bgcolor: '#16a34a', '&:hover': { bgcolor: '#15803d' } }}
+                        onClick={() => void handleDecision('accepted')}
+                        disabled={decisionState === 'submitting'}
+                      >
+                        Accept Offer
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        sx={{ borderColor: '#d97706', color: '#d97706', '&:hover': { borderColor: '#b45309', bgcolor: '#fef3c7' } }}
+                        onClick={() => setDecisionState('countering')}
+                      >
+                        Make Counter Offer
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => void handleDecision('rejected')}
+                        disabled={decisionState === 'submitting'}
+                      >
+                        Decline Offer
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              )}
             </>
           )}
         </Box>

@@ -32,6 +32,14 @@ export const definition = {
         type: 'string',
         description: '2-letter state code for the property location. Defaults to CO.',
       },
+      agentEmail: {
+        type: 'string',
+        description: "Seller's agent email address. Capture this as soon as it is known — required to submit the offer.",
+      },
+      agentName: {
+        type: 'string',
+        description: "Seller's agent full name.",
+      },
     },
     required: ['listingId', 'listingAddress'],
   },
@@ -43,6 +51,8 @@ interface CreateOfferDraftInput {
   viewingId?: string
   profileId?: string
   propertyState?: string
+  agentEmail?: string
+  agentName?: string
 }
 
 export async function execute(
@@ -84,6 +94,8 @@ export async function execute(
     listingAddress: input.listingAddress,
     viewingId: input.viewingId,
     profileId: input.profileId,
+    agentEmail: input.agentEmail,
+    agentName: input.agentName,
     status: 'draft',
     propertyState: input.propertyState ?? 'CO',
     buyers: [primaryBuyer],

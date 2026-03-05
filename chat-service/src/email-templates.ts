@@ -1,5 +1,124 @@
 import type { Listing, Viewing } from './types'
 
+export function offerSubmittedToAgentEmail(
+  listingAddress: string,
+  buyerNames: string,
+  agentName: string | undefined,
+  offerPrice: number | undefined,
+  closingDate: string | undefined,
+  paDownloadUrl: string | undefined,
+  sellerResponseUrl: string,
+): { subject: string; html: string } {
+  const subject = `Offer Received: ${listingAddress}`
+  const priceRow = offerPrice
+    ? `<p><strong>Offer Price:</strong> $${offerPrice.toLocaleString()}</p>`
+    : ''
+  const closingRow = closingDate
+    ? `<p><strong>Proposed Closing:</strong> ${closingDate}</p>`
+    : ''
+  const paButton = paDownloadUrl
+    ? `<p style="margin-top:16px">
+        <a href="${paDownloadUrl}" style="background:#374151;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;font-size:14px">
+          Download Purchase Agreement →
+        </a>
+       </p>`
+    : ''
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2>Offer Received via SirRealtor</h2>
+  <p>${agentName ? `Dear ${agentName},` : "Dear Seller's Agent,"}</p>
+  <p>You have received an offer for the following property:</p>
+  <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0">
+    <p style="margin-top:0"><strong>Property:</strong> ${listingAddress}</p>
+    <p><strong>Buyer(s):</strong> ${buyerNames}</p>
+    ${priceRow}
+    ${closingRow}
+  </div>
+  ${paButton}
+  <p style="margin-top:20px">To upload seller's disclosures and respond to this offer, use the link below:</p>
+  <a href="${sellerResponseUrl}" style="background:#1a56db;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
+    Review &amp; Respond to Offer →
+  </a>
+  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com)</p>
+</body>
+</html>`
+  return { subject, html }
+}
+
+export function offerSubmittedToBuyerEmail(
+  listingAddress: string,
+  agentName: string | undefined,
+  chatUrl: string,
+): { subject: string; html: string } {
+  const subject = `Offer submitted — ${listingAddress}`
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <h2 style="color:#1a56db">Offer Submitted!</h2>
+  <p>Your offer has been sent to the seller's agent${agentName ? ` (${agentName})` : ''} for:</p>
+  <p style="font-weight:600">${listingAddress}</p>
+  <p>You'll be notified when the seller responds. This typically takes 24–48 hours.</p>
+  <a href="${chatUrl}" style="background:#1a56db;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">
+    Open SirRealtor →
+  </a>
+  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com)</p>
+</body>
+</html>`
+  return { subject, html }
+}
+
+export function sellerDecisionEmail(
+  listingAddress: string,
+  decision: 'accepted' | 'countered' | 'rejected',
+  counterOfferPrice: number | undefined,
+  chatUrl: string,
+): { subject: string; html: string } {
+  const decisionLabel =
+    decision === 'accepted' ? 'Accepted' : decision === 'countered' ? 'Counter Offer Received' : 'Declined'
+  const subject = `Offer ${decisionLabel} — ${listingAddress}`
+
+  let bodyContent: string
+  if (decision === 'accepted') {
+    bodyContent = `
+  <h2 style="color:#16a34a">Your Offer Was Accepted!</h2>
+  <p>Congratulations! The seller has accepted your offer for:</p>
+  <p style="font-weight:600">${listingAddress}</p>
+  <p>Open SirRealtor to review next steps toward closing.</p>`
+  } else if (decision === 'countered') {
+    const counterRow = counterOfferPrice
+      ? `<p><strong>Counter Offer Price:</strong> $${counterOfferPrice.toLocaleString()}</p>`
+      : ''
+    bodyContent = `
+  <h2 style="color:#d97706">Counter Offer Received</h2>
+  <p>The seller has made a counter offer for:</p>
+  <p style="font-weight:600">${listingAddress}</p>
+  ${counterRow}
+  <p>Open SirRealtor to discuss your options and respond to the counter offer.</p>`
+  } else {
+    bodyContent = `
+  <h2>Offer Declined</h2>
+  <p>The seller has declined your offer for:</p>
+  <p style="font-weight:600">${listingAddress}</p>
+  <p>Don't be discouraged — SirRealtor can help you find other properties or prepare a revised offer.</p>`
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  ${bodyContent}
+  <a href="${chatUrl}" style="background:#1a56db;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;margin-top:16px">
+    Open SirRealtor →
+  </a>
+  <p style="color:#6b7280;font-size:12px;margin-top:24px">Sent via SirRealtor (sirrealtor.com)</p>
+</body>
+</html>`
+  return { subject, html }
+}
+
 export function purchaseAgreementSignedEmail(
   listingAddress: string,
   chatUrl: string,
