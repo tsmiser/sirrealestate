@@ -1,0 +1,149 @@
+import { useMemo, useEffect } from 'react'
+import { Box, Typography } from '@mui/material'
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
+import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { enUS } from 'date-fns/locale/en-US'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+import { useViewings, type Viewing } from '@/hooks/useViewings'
+
+const locales = { 'en-US': enUS }
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
+
+const CONFIRMED_COLOR = '#16a34a'
+const AVAILABILITY_COLOR = '#f59e0b'
+
+interface ViewingEvent {
+  title: string
+  start: Date
+  end: Date
+  type: 'confirmed' | 'availability'
+  viewing: Viewing
+}
+
+function buildEvents(viewings: Viewing[]): ViewingEvent[] {
+  const events: ViewingEvent[] = []
+  for (const v of viewings) {
+    if (v.proposedDateTime) {
+      const start = new Date(v.proposedDateTime)
+      events.push({
+        title: v.listingAddress,
+        start,
+        end: new Date(start.getTime() + 60 * 60 * 1000),
+        type: 'confirmed',
+        viewing: v,
+      })
+    }
+    if (v.status === 'requested' && v.availabilitySlots) {
+      for (const slot of v.availabilitySlots) {
+        const start = new Date(slot)
+        events.push({
+          title: v.listingAddress,
+          start,
+          end: new Date(start.getTime() + 60 * 60 * 1000),
+          type: 'availability',
+          viewing: v,
+        })
+      }
+    }
+  }
+  return events
+}
+
+function eventStyleGetter(event: ViewingEvent) {
+  const bg = event.type === 'confirmed' ? CONFIRMED_COLOR : AVAILABILITY_COLOR
+  return {
+    style: {
+      backgroundColor: bg,
+      border: 'none',
+      borderRadius: '4px',
+      color: '#fff',
+      fontSize: '12px',
+      opacity: event.type === 'availability' ? 0.85 : 1,
+    },
+  }
+}
+
+export default function ViewingsPage() {
+  const { viewings, isLoading, refetch } = useViewings()
+
+  useEffect(() => { refetch() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const events = useMemo(() => buildEvents(viewings), [viewings])
+
+  const defaultDate = useMemo(() => {
+    if (events.length === 0) return new Date()
+    const now = new Date()
+    const future = events.filter((e) => e.start >= now)
+    if (future.length > 0) return future.reduce((a, b) => (a.start < b.start ? a : b)).start
+    return events.reduce((a, b) => (a.start > b.start ? a : b)).start
+  }, [events])
+
+  return (
+    <Box className="flex flex-col gap-4 max-w-6xl mx-auto">
+      <Box className="px-4 pt-4">
+        <Typography variant="h5" className="font-heading font-bold">My Viewings</Typography>
+        <Typography variant="body2" className="text-text-secondary mt-0.5">
+          Scheduled viewings and your proposed availability windows
+        </Typography>
+      </Box>
+
+      {/* Legend */}
+      <Box className="flex items-center gap-5 px-4">
+        <Box className="flex items-center gap-2">
+          <Box className="h-3 w-3 rounded-sm" style={{ backgroundColor: CONFIRMED_COLOR }} />
+          <Typography variant="caption" className="text-text-secondary">Confirmed viewing</Typography>
+        </Box>
+        <Box className="flex items-center gap-2">
+          <Box className="h-3 w-3 rounded-sm" style={{ backgroundColor: AVAILABILITY_COLOR }} />
+          <Typography variant="caption" className="text-text-secondary">Your offered availability</Typography>
+        </Box>
+      </Box>
+
+      {isLoading ? (
+        <Typography variant="body2" className="text-text-secondary px-4 py-8 text-center">
+          Loading…
+        </Typography>
+      ) : (
+        <Box
+          className="mx-4 overflow-hidden rounded-2xl border border-grey-100 bg-background-paper shadow-xs"
+          sx={{
+            height: 'calc(100vh - 260px)',
+            minHeight: 480,
+            '& .rbc-toolbar': { padding: '12px 16px', gap: '8px' },
+            '& .rbc-toolbar button': {
+              borderRadius: '8px',
+              border: '1px solid var(--grey-100)',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+            },
+            '& .rbc-toolbar button.rbc-active': {
+              backgroundColor: 'var(--primary)',
+              borderColor: 'var(--primary)',
+              color: '#fff',
+            },
+            '& .rbc-today': { backgroundColor: 'rgba(0,191,235,0.05)' },
+            '& .rbc-header': { fontSize: '12px', fontWeight: 600, padding: '8px 4px' },
+            '& .rbc-event:focus': { outline: 'none' },
+          }}
+        >
+          <Calendar
+            localizer={localizer}
+            events={events}
+            defaultView="week"
+            defaultDate={defaultDate}
+            views={['month', 'week', 'day', 'agenda']}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            eventPropGetter={eventStyleGetter as any}
+            style={{ height: '100%' }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            tooltipAccessor={(event: any) =>
+              (event as ViewingEvent).type === 'confirmed'
+                ? `Confirmed: ${(event as ViewingEvent).title}`
+                : `Your availability: ${(event as ViewingEvent).title}`
+            }
+          />
+        </Box>
+      )}
+    </Box>
+  )
+}

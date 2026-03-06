@@ -18,6 +18,7 @@ export interface Viewing {
   agentEmail?: string
   agentName?: string
   requestedAt: string
+  availabilitySlots?: string[]
   proposedDateTime?: string
   status: ViewingStatus
   feedback?: ViewingFeedback

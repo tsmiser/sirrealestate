@@ -21,8 +21,10 @@
     "@types/google.maps": "^3.58.1",
     "aws-amplify": "^6.9.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "ds-markdown": "0.2.2",
     "react": "^18.3.1",
+    "react-big-calendar": "^1.19.4",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
     "tailwind-merge": "3.3.1",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
+    "@types/react-big-calendar": "^1.16.3",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.0",

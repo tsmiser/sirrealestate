@@ -3,6 +3,7 @@ import AuthGuard from '@/components/auth/AuthGuard'
 import AppLayout from '@/components/layout/AppLayout'
 import ChatPage from '@/pages/ChatPage'
 import ListingsPage from '@/pages/ListingsPage'
+import ViewingsPage from '@/pages/ViewingsPage'
 import LoginPage from '@/pages/LoginPage'
 import SignUpPage from '@/pages/SignUpPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
@@ -28,6 +29,7 @@ export default function App() {
         >
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/listings/:profileId" element={<ListingsPage />} />
+          <Route path="/viewings" element={<ViewingsPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/chat" replace />} />

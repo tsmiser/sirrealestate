@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { Box, Divider, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
 import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
@@ -181,7 +181,15 @@ export default function LeftMenu() {
               Schedule a viewing through chat →
             </Typography>
           ) : (
-            viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)
+            <>
+              {viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)}
+              <Link
+                to="/viewings"
+                className="text-primary ms-7 mt-1 block text-xs font-medium hover:underline"
+              >
+                View all viewings →
+              </Link>
+            </>
           )}
         </SidebarSection>
 
