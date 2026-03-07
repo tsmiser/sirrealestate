@@ -12,6 +12,12 @@ export interface SearchCriteria {
   zipCodes?: string[]
 }
 
+export interface AvailabilityWindow {
+  windowId: string
+  start: string  // ISO datetime
+  end: string    // ISO datetime
+}
+
 export interface SearchProfile {
   profileId: string
   name: string
@@ -39,6 +45,7 @@ export interface UserProfile {
   desiredCity?: string
   desiredState?: string
   listingViewingPreference?: 'zillow' | 'redfin' | 'realtor'
+  availability?: AvailabilityWindow[]
   searchProfiles: SearchProfile[]
   createdAt: string
   updatedAt: string

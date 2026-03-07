@@ -10,6 +10,7 @@ import * as UpdateUserDetails from './tools/update-user-details'
 import * as UpsertSearchProfile from './tools/upsert-search-profile'
 import * as GetSearchResults from './tools/get-search-results'
 import * as ScheduleViewing from './tools/schedule-viewing'
+import * as UpdateAvailability from './tools/update-availability'
 import * as GetPendingFeedback from './tools/get-pending-feedback'
 import * as SaveViewingFeedback from './tools/save-viewing-feedback'
 import * as GetDocuments from './tools/get-documents'
@@ -30,8 +31,11 @@ const SYSTEM_PROMPT =
   'and call get_pending_feedback to check for any viewings needing feedback. ' +
   'Be concise, proactive, and data-driven. When the user describes what they want, save a search ' +
   'profile and ask if they want to enable daily monitoring. ' +
-  'Before scheduling a viewing, always ask the user for at least two available date/time options ' +
-  'to offer the seller\'s agent — never call schedule_viewing without availabilitySlots. ' +
+  'AVAILABILITY: The user\'s viewing availability windows are stored in their profile (see get_user_profile). ' +
+  'If the user asks to schedule a viewing and their profile has no availability windows, ask them to share ' +
+  'the date/time ranges when they are free, then call update_availability to save those windows. ' +
+  'Once saved, immediately call schedule_viewing — do NOT ask for availability again. ' +
+  'If the user wants to update or clear their availability, call update_availability with the new windows. ' +
   'The user\'s email address is already known (provided in the User context below) — never ask for it. ' +
   'When the user shares their name, phone number, buyer status, or pre-approval details, call ' +
   'update_user_details immediately to save that information. ' +
@@ -88,6 +92,7 @@ const TOOLS: Anthropic.Tool[] = [
   UpsertSearchProfile.definition,
   GetSearchResults.definition,
   ScheduleViewing.definition,
+  UpdateAvailability.definition,
   GetPendingFeedback.definition,
   SaveViewingFeedback.definition,
   GetDocuments.definition,
@@ -117,6 +122,8 @@ async function executeTool(
       return GetSearchResults.execute(userId, input as Parameters<typeof GetSearchResults.execute>[1])
     case 'schedule_viewing':
       return ScheduleViewing.execute(userId, input as Parameters<typeof ScheduleViewing.execute>[1], userEmail)
+    case 'update_availability':
+      return UpdateAvailability.execute(userId, input as Parameters<typeof UpdateAvailability.execute>[1])
     case 'get_pending_feedback':
       return GetPendingFeedback.execute(userId)
     case 'save_viewing_feedback':

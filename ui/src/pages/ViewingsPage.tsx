@@ -5,6 +5,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale/en-US'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { useViewings, type Viewing } from '@/hooks/useViewings'
+import { useUserProfile, type AvailabilityWindow } from '@/hooks/useUserProfile'
 
 const locales = { 'en-US': enUS }
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
@@ -17,11 +18,13 @@ interface ViewingEvent {
   start: Date
   end: Date
   type: 'confirmed' | 'availability'
-  viewing: Viewing
+  source: Viewing | AvailabilityWindow
 }
 
-function buildEvents(viewings: Viewing[]): ViewingEvent[] {
+function buildEvents(viewings: Viewing[], availability: AvailabilityWindow[]): ViewingEvent[] {
   const events: ViewingEvent[] = []
+
+  // Confirmed viewing appointments
   for (const v of viewings) {
     if (v.proposedDateTime) {
       const start = new Date(v.proposedDateTime)
@@ -30,22 +33,22 @@ function buildEvents(viewings: Viewing[]): ViewingEvent[] {
         start,
         end: new Date(start.getTime() + 60 * 60 * 1000),
         type: 'confirmed',
-        viewing: v,
+        source: v,
       })
     }
-    if (v.status === 'requested' && v.availabilitySlots) {
-      for (const slot of v.availabilitySlots) {
-        const start = new Date(slot)
-        events.push({
-          title: v.listingAddress,
-          start,
-          end: new Date(start.getTime() + 60 * 60 * 1000),
-          type: 'availability',
-          viewing: v,
-        })
-      }
-    }
   }
+
+  // User's availability windows from profile (shown for context across all viewings)
+  for (const w of availability) {
+    events.push({
+      title: 'Available for viewings',
+      start: new Date(w.start),
+      end: new Date(w.end),
+      type: 'availability',
+      source: w,
+    })
+  }
+
   return events
 }
 
@@ -58,17 +61,23 @@ function eventStyleGetter(event: ViewingEvent) {
       borderRadius: '4px',
       color: '#fff',
       fontSize: '12px',
-      opacity: event.type === 'availability' ? 0.85 : 1,
+      opacity: event.type === 'availability' ? 0.75 : 1,
     },
   }
 }
 
 export default function ViewingsPage() {
-  const { viewings, isLoading, refetch } = useViewings()
+  const { viewings, isLoading: viewingsLoading, refetch: refetchViewings } = useViewings()
+  const { profile, isLoading: profileLoading, refetch: refetchProfile } = useUserProfile()
 
-  useEffect(() => { refetch() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    refetchViewings()
+    refetchProfile()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const events = useMemo(() => buildEvents(viewings), [viewings])
+  const availability = profile?.availability ?? []
+  const events = useMemo(() => buildEvents(viewings, availability), [viewings, availability])
+  const isLoading = viewingsLoading || profileLoading
 
   const defaultDate = useMemo(() => {
     if (events.length === 0) return new Date()
@@ -81,9 +90,9 @@ export default function ViewingsPage() {
   return (
     <Box className="flex flex-col gap-4 max-w-6xl mx-auto">
       <Box className="px-4 pt-4">
-        <Typography variant="h5" className="font-heading font-bold">My Viewings</Typography>
+        <Typography variant="h5" className="font-heading font-bold">Viewing Calendar</Typography>
         <Typography variant="body2" className="text-text-secondary mt-0.5">
-          Scheduled viewings and your proposed availability windows
+          Confirmed viewings and your availability windows
         </Typography>
       </Box>
 
@@ -95,7 +104,7 @@ export default function ViewingsPage() {
         </Box>
         <Box className="flex items-center gap-2">
           <Box className="h-3 w-3 rounded-sm" style={{ backgroundColor: AVAILABILITY_COLOR }} />
-          <Typography variant="caption" className="text-text-secondary">Your offered availability</Typography>
+          <Typography variant="caption" className="text-text-secondary">Your availability</Typography>
         </Box>
       </Box>
 
@@ -139,7 +148,7 @@ export default function ViewingsPage() {
             tooltipAccessor={(event: any) =>
               (event as ViewingEvent).type === 'confirmed'
                 ? `Confirmed: ${(event as ViewingEvent).title}`
-                : `Your availability: ${(event as ViewingEvent).title}`
+                : 'Your availability window'
             }
           />
         </Box>

@@ -14,7 +14,9 @@ const ses = new SESClient({})
 export const definition = {
   name: 'schedule_viewing',
   description:
-    'Schedule a property viewing by sending a request email to the seller\'s agent and a confirmation to the buyer. Use this when the user wants to arrange a visit to a property they\'ve found.',
+    'Schedule a property viewing by sending a request email to the seller\'s agent and a confirmation to the buyer. ' +
+    'The buyer\'s availability windows are read automatically from their profile — do NOT ask them for times. ' +
+    'If their profile has no availability set, return the error and ask them to set their availability first using update_availability.',
   input_schema: {
     type: 'object',
     properties: {
@@ -26,61 +28,70 @@ export const definition = {
         type: 'string',
         description: 'The search profile ID that found this listing.',
       },
-      availabilitySlots: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Two or more date/time options the buyer is available, in ISO 8601 format, e.g. ["2026-03-15T14:00:00", "2026-03-16T10:00:00"]. Collect these from the user before calling this tool.',
-      },
     },
-    required: ['listingId', 'profileId', 'availabilitySlots'],
+    required: ['listingId', 'profileId'],
   },
 }
 
 interface ScheduleViewingInput {
   listingId: string
   profileId: string
-  availabilitySlots: string[]
 }
 
 export async function execute(
   userId: string,
   input: ScheduleViewingInput,
   userEmail: string,
-): Promise<{ viewingId: string; message: string }> {
+): Promise<{ viewingId: string; message: string } | { error: string }> {
   const now = new Date().toISOString()
 
-  // Look up listing data from SearchResults
-  const srResult = await dynamo.send(
-    new GetItemCommand({
-      TableName: process.env.SEARCH_RESULTS_TABLE!,
-      Key: {
-        userId: { S: userId },
-        profileIdListingId: { S: `${input.profileId}#${input.listingId}` },
-      },
-    }),
-  )
+  // Load listing data and user profile in parallel
+  const [srResult, profileResult] = await Promise.all([
+    dynamo.send(
+      new GetItemCommand({
+        TableName: process.env.SEARCH_RESULTS_TABLE!,
+        Key: {
+          userId: { S: userId },
+          profileIdListingId: { S: `${input.profileId}#${input.listingId}` },
+        },
+      }),
+    ),
+    dynamo.send(
+      new GetItemCommand({
+        TableName: process.env.USER_PROFILE_TABLE!,
+        Key: { userId: { S: userId } },
+      }),
+    ),
+  ])
 
   const searchResult = srResult.Item ? (unmarshall(srResult.Item) as SearchResult) : null
   const listing = searchResult?.listingData
-
   const listingAddress = listing?.address ?? `Listing ${input.listingId}`
   const agentEmail = listing?.agentEmail
   const agentName = listing?.agentName
 
-  // Get user's name from profile
-  const profileResult = await dynamo.send(
-    new GetItemCommand({
-      TableName: process.env.USER_PROFILE_TABLE!,
-      Key: { userId: { S: userId } },
-    }),
-  )
   const userProfile = profileResult.Item ? (unmarshall(profileResult.Item) as UserProfile) : null
+  const availabilityWindows = userProfile?.availability ?? []
+
+  if (availabilityWindows.length === 0) {
+    return {
+      error:
+        'The user has no viewing availability windows saved. ' +
+        'Ask them to share the date and time ranges when they are free to visit properties, ' +
+        'then call update_availability to save those windows before scheduling.',
+    }
+  }
+
   const buyerName =
     userProfile?.firstName && userProfile?.lastName
       ? `${userProfile.firstName} ${userProfile.lastName}`
       : userEmail
 
   const viewingId = randomUUID()
+
+  // Snapshot the availability start times for the Viewing record and the response-link flow
+  const availabilitySlots = availabilityWindows.map((w) => w.start)
+
   const viewing: Viewing = {
     userId,
     viewingId,
@@ -90,11 +101,10 @@ export async function execute(
     agentEmail,
     agentName,
     requestedAt: now,
-    availabilitySlots: input.availabilitySlots,
+    availabilitySlots,
     status: 'requested',
   }
 
-  // Save viewing record
   await dynamo.send(
     new PutItemCommand({
       TableName: process.env.VIEWINGS_TABLE!,
@@ -106,7 +116,9 @@ export async function execute(
 
   // Email the seller's agent and record the notification regardless of send success
   if (agentEmail) {
-    const { subject: agentSubject, html: agentHtml } = viewingRequestToAgentEmail(viewing, userEmail, buyerName, input.availabilitySlots)
+    const { subject: agentSubject, html: agentHtml } = viewingRequestToAgentEmail(
+      viewing, userEmail, buyerName, availabilityWindows,
+    )
     let agentStatus: 'sent' | 'failed' = 'failed'
     try {
       await ses.send(new SendEmailCommand({

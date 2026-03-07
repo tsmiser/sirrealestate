@@ -217,17 +217,21 @@ export function viewingRequestToAgentEmail(
   viewing: Viewing,
   buyerEmail: string,
   buyerName: string,
-  availabilitySlots: string[],
+  availabilityWindows: { start: string; end: string }[],
 ): { subject: string; html: string } {
   const baseUrl = 'https://app.sirrealtor.com/viewing-response'
 
-  const slotButtons = availabilitySlots
-    .map((slot, i) => {
+  const slotButtons = availabilityWindows
+    .map((window, i) => {
       const url = `${baseUrl}?viewingId=${encodeURIComponent(viewing.viewingId)}&slot=${i}`
-      const label = new Date(slot).toLocaleString('en-US', {
+      const startLabel = new Date(window.start).toLocaleString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric',
         hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
       })
+      const endLabel = new Date(window.end).toLocaleString('en-US', {
+        hour: 'numeric', minute: '2-digit',
+      })
+      const label = `${startLabel} – ${endLabel}`
       return `<a href="${url}" style="display:block;background:#1a56db;color:white;padding:12px 20px;border-radius:6px;text-decoration:none;margin-bottom:10px;font-size:15px">${label}</a>`
     })
     .join('\n  ')

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { Box, Divider, Typography } from '@mui/material'
 import { useLayoutContext } from '@/components/layout/layout-context'
 import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
@@ -64,6 +64,20 @@ function SidebarSection({
         </div>
       )}
     </div>
+  )
+}
+
+function ViewingChatButton({ prompt }: { prompt: string }) {
+  const navigate = useNavigate()
+  return (
+    <button
+      onClick={() => navigate(`/chat?prompt=${encodeURIComponent(prompt)}`)}
+      className="shrink-0 text-text-secondary opacity-40 hover:opacity-100 hover:text-primary transition-opacity rounded p-0.5"
+      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', lineHeight: 0 }}
+      title="Chat about viewings"
+    >
+      <NiMessage size={12} />
+    </button>
   )
 }
 
@@ -181,16 +195,34 @@ export default function LeftMenu() {
               Schedule a viewing through chat →
             </Typography>
           ) : (
-            <>
-              {viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)}
-              <Link
-                to="/viewings"
-                className="text-primary ms-7 mt-1 block text-xs font-medium hover:underline"
-              >
-                View all viewings →
-              </Link>
-            </>
+            viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)
           )}
+          {/* Always-visible calendar link + context-aware chat icon */}
+          {(() => {
+            const hasAvailability = (profile?.availability?.length ?? 0) > 0
+            const upcoming = viewings.filter(
+              (v) => v.status === 'requested' || v.status === 'confirmed',
+            )
+            const availPrompt = hasAvailability
+              ? `I'd like to update my viewing availability. I currently have ${profile!.availability!.length} time window${profile!.availability!.length === 1 ? '' : 's'} set.`
+              : `I'd like to set my availability for property viewings.`
+            const viewingsPart =
+              upcoming.length > 0
+                ? ` I also have ${upcoming.length} upcoming viewing${upcoming.length === 1 ? '' : 's'} (${upcoming.map((v) => v.listingAddress).join(', ')}).`
+                : ''
+            const chatPrompt = availPrompt + viewingsPart
+            return (
+              <Box className="ms-7 mt-1 flex items-center gap-1.5">
+                <Link
+                  to="/viewings"
+                  className="text-primary text-xs font-medium hover:underline"
+                >
+                  Viewing Calendar →
+                </Link>
+                <ViewingChatButton prompt={chatPrompt} />
+              </Box>
+            )
+          })()}
         </SidebarSection>
 
         <SidebarSection

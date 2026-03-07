@@ -28,6 +28,12 @@ export interface SearchProfile {
   updatedAt: string
 }
 
+export interface AvailabilityWindow {
+  windowId: string
+  start: string  // ISO datetime
+  end: string    // ISO datetime
+}
+
 export interface UserProfile {
   userId: string
   email: string
@@ -44,6 +50,7 @@ export interface UserProfile {
   desiredCity?: string
   desiredState?: string
   listingViewingPreference?: 'zillow' | 'redfin' | 'realtor'
+  availability?: AvailabilityWindow[]  // general viewing availability windows
   searchProfiles: SearchProfile[]
   createdAt: string
   updatedAt: string
