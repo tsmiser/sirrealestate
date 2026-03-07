@@ -83,7 +83,7 @@ function ViewingChatButton({ prompt }: { prompt: string }) {
 
 export default function LeftMenu() {
   const { sidebarOpen, sidebarWidth } = useLayoutContext()
-  const { registerProfileRefetch, registerSearchResultsRefetch, registerDocumentsRefetch, registerOffersRefetch, setNewListingsCount } = useSidebarRefresh()
+  const { registerProfileRefetch, registerSearchResultsRefetch, registerDocumentsRefetch, registerOffersRefetch, registerViewingsRefetch, setNewListingsCount } = useSidebarRefresh()
   const { profile, refetch: refetchProfile } = useUserProfile()
   const { results, grouped, refetch: refetchSearchResults } = useSearchResults()
   const { viewings, refetch: refetchViewings } = useViewings()
@@ -105,6 +105,10 @@ export default function LeftMenu() {
   useEffect(() => {
     registerOffersRefetch(refetchOffers)
   }, [registerOffersRefetch, refetchOffers])
+
+  useEffect(() => {
+    registerViewingsRefetch(refetchViewings)
+  }, [registerViewingsRefetch, refetchViewings])
 
   useEffect(() => {
     setNewListingsCount(results.filter((r) => !r.notified).length)
