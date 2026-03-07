@@ -171,9 +171,12 @@ export default function LeftMenu() {
           contentClassName="flex flex-col gap-1 px-2 pb-3 pt-0"
         >
           {!profile || profile.searchProfiles.length === 0 ? (
-            <Typography variant="caption" className="text-text-secondary px-2.5 italic">
+            <Link
+              to="/chat?prompt=I'd+like+to+start+a+property+search"
+              className="text-primary px-2.5 text-xs font-medium italic hover:underline"
+            >
               Start a search in chat →
-            </Typography>
+            </Link>
           ) : (
             profile.searchProfiles.map((sp) => (
               <SearchProfileCard
@@ -191,9 +194,12 @@ export default function LeftMenu() {
           contentClassName="flex flex-col gap-1.5 px-2 pb-3 pt-0"
         >
           {viewings.length === 0 ? (
-            <Typography variant="caption" className="text-text-secondary px-2.5 italic">
+            <Link
+              to="/chat?prompt=I'd+like+to+schedule+a+property+viewing"
+              className="text-primary px-2.5 text-xs font-medium italic hover:underline"
+            >
               Schedule a viewing through chat →
-            </Typography>
+            </Link>
           ) : (
             viewings.map((v) => <ViewingCard key={v.viewingId} viewing={v} />)
           )}
@@ -231,9 +237,12 @@ export default function LeftMenu() {
           contentClassName="flex flex-col gap-1.5 px-2 pb-3 pt-0"
         >
           {offers.length === 0 ? (
-            <Typography variant="caption" className="text-text-secondary px-2.5 italic">
+            <Link
+              to="/chat?prompt=I'd+like+to+start+an+offer+on+a+property"
+              className="text-primary px-2.5 text-xs font-medium italic hover:underline"
+            >
               Start an offer through chat →
-            </Typography>
+            </Link>
           ) : (
             offers.map((o) => <OfferCard key={o.offerId} offer={o} />)
           )}
