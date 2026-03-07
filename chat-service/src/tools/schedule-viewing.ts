@@ -67,7 +67,7 @@ export async function execute(
   const searchResult = srResult.Item ? (unmarshall(srResult.Item) as SearchResult) : null
   const listing = searchResult?.listingData
   const listingAddress = listing?.address ?? `Listing ${input.listingId}`
-  const agentEmail = listing?.agentEmail
+  const agentEmail = listing?.agentEmail ?? process.env.SES_TEST_RECIPIENT
   const agentName = listing?.agentName
 
   const userProfile = profileResult.Item ? (unmarshall(profileResult.Item) as UserProfile) : null
