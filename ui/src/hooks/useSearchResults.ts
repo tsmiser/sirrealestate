@@ -13,6 +13,7 @@ export interface Listing {
   listingUrl?: string
   latitude?: number
   longitude?: number
+  propertyType?: string
 }
 
 export interface SearchResult {

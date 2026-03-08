@@ -7,11 +7,24 @@ interface RentcastProperty {
   bedrooms: number
   bathrooms: number
   squareFootage?: number
+  propertyType?: string
   listingType?: string
   latitude?: number
   longitude?: number
   // Rentcast does not always expose agent contact in the free tier
   [key: string]: unknown
+}
+
+function normalizePropertyType(raw?: string): string | undefined {
+  if (!raw) return undefined
+  const s = raw.toLowerCase().replace(/[^a-z]/g, ' ').trim()
+  if (s.includes('single') || (s.includes('family') && !s.includes('multi'))) return 'single_family'
+  if (s.includes('condo') || s.includes('co op') || s.includes('coop')) return 'condo'
+  if (s.includes('townhouse') || s.includes('townhome')) return 'townhouse'
+  if (s.includes('multi')) return 'multi_family'
+  if (s.includes('land') || s.includes('lot')) return 'land'
+  if (s.includes('mobile') || s.includes('manufactured')) return 'mobile'
+  return 'other'
 }
 
 export class RentcastProvider implements MlsProvider {
@@ -59,6 +72,7 @@ export class RentcastProvider implements MlsProvider {
       sqft: p.squareFootage,
       latitude: typeof p.latitude === 'number' ? p.latitude : undefined,
       longitude: typeof p.longitude === 'number' ? p.longitude : undefined,
+      propertyType: normalizePropertyType(p.propertyType),
       rawData: p,
     }))
   }

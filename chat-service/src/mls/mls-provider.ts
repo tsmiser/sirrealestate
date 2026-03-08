@@ -21,6 +21,7 @@ export interface Listing {
   listingUrl?: string
   latitude?: number
   longitude?: number
+  propertyType?: string
   rawData: unknown
 }
 
