@@ -2,6 +2,7 @@ import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typogra
 import { useFloatingChat } from '@/components/chat/floating-chat-context'
 import type { SearchResult } from '@/hooks/useSearchResults'
 import { streetViewUrl } from '@/lib/streetview'
+import FavoriteButton from '@/components/favorites/FavoriteButton'
 
 interface ListingDetailDialogProps {
   result: SearchResult | null
@@ -29,7 +30,15 @@ export default function ListingDetailDialog({ result, open, onClose }: ListingDe
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{l.address}</DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+        {l.address}
+        <FavoriteButton
+          listingId={result.listingId}
+          listingData={result.listingData}
+          profileId={result.profileId}
+          size="medium"
+        />
+      </DialogTitle>
       <DialogContent dividers sx={{ padding: 0 }}>
         {imgUrl && (
           <img

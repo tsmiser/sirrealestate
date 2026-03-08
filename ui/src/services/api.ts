@@ -2,10 +2,11 @@
 import { fetchAuthSession } from 'aws-amplify/auth'
 import type { ChatRequest, ChatResponse } from '@/types'
 import type { UserProfile, AvailabilityWindow } from '@/hooks/useUserProfile'
-import type { SearchResult } from '@/hooks/useSearchResults'
+import type { SearchResult, Listing } from '@/hooks/useSearchResults'
 import type { Viewing } from '@/hooks/useViewings'
 import type { UserDocument } from '@/hooks/useDocuments'
 import type { Offer } from '@/hooks/useOffers'
+import type { Favorite } from '@/components/favorites/FavoritesContext'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -65,6 +66,12 @@ export const viewings = {
 
 export const offers = {
   list: () => api.get<{ offers: Offer[] }>('/offers'),
+}
+
+export const favorites = {
+  list: () => api.get<{ favorites: Favorite[] }>('/favorites'),
+  toggle: (body: { listingId: string; listingData: Listing; profileId: string }) =>
+    api.post<{ favorited: boolean }>('/favorites/toggle', body),
 }
 
 export const notifications = {

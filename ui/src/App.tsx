@@ -10,6 +10,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
 import ViewingResponsePage from '@/pages/ViewingResponsePage'
 import SellerResponsePage from '@/pages/SellerResponsePage'
 import NotificationsPage from '@/pages/NotificationsPage'
+import FavoritesPage from '@/pages/FavoritesPage'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/listings/:profileId" element={<ListingsPage />} />
           <Route path="/viewings" element={<ViewingsPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>

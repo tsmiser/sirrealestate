@@ -11,6 +11,7 @@ export class DataStack extends Stack {
   readonly documentBucket: s3.Bucket
   readonly documentsTable: dynamodb.Table
   readonly offersTable: dynamodb.Table
+  readonly favoritesTable: dynamodb.Table
 
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props)
@@ -100,6 +101,14 @@ export class DataStack extends Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     })
 
+    this.favoritesTable = new dynamodb.Table(this, 'FavoritesTable', {
+      tableName: 'SirRealtor-Favorites',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'listingId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN,
+    })
+
     new CfnOutput(this, 'UserProfileTableName', { value: this.userProfileTable.tableName })
     new CfnOutput(this, 'SearchResultsTableName', { value: this.searchResultsTable.tableName })
     new CfnOutput(this, 'NotificationsTableName', { value: this.notificationsTable.tableName })
@@ -107,5 +116,6 @@ export class DataStack extends Stack {
     new CfnOutput(this, 'DocumentBucketName', { value: this.documentBucket.bucketName })
     new CfnOutput(this, 'DocumentsTableName', { value: this.documentsTable.tableName })
     new CfnOutput(this, 'OffersTableName', { value: this.offersTable.tableName })
+    new CfnOutput(this, 'FavoritesTableName', { value: this.favoritesTable.tableName })
   }
 }

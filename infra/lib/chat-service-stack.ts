@@ -28,6 +28,7 @@ interface ChatServiceStackProps extends StackProps {
   documentBucket: s3.Bucket
   documentsTable: dynamodb.Table
   offersTable: dynamodb.Table
+  favoritesTable: dynamodb.Table
 }
 
 export class ChatServiceStack extends Stack {
@@ -42,6 +43,7 @@ export class ChatServiceStack extends Stack {
       DOCUMENTS_TABLE: props.documentsTable.tableName,
       DOCUMENT_BUCKET_NAME: props.documentBucket.bucketName,
       OFFERS_TABLE: props.offersTable.tableName,
+      FAVORITES_TABLE: props.favoritesTable.tableName,
     }
 
     const bundlingOptions = { externalModules: [] as string[] }
@@ -137,6 +139,7 @@ export class ChatServiceStack extends Stack {
     props.documentsTable.grantReadWriteData(dataLambda)
     props.documentBucket.grantReadWrite(dataLambda)
     props.offersTable.grantReadWriteData(dataLambda)
+    props.favoritesTable.grantReadWriteData(dataLambda)
 
     // SES permission for buyer notification on agent response
     dataLambda.addToRolePolicy(

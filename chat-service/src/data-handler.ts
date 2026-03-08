@@ -1,11 +1,11 @@
-import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient, DeleteItemCommand, GetItemCommand, PutItemCommand, QueryCommand, ScanCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb'
 import type { AttributeValue } from '@aws-sdk/client-dynamodb'
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda'
-import type { UserProfile, SearchResult, Viewing, UserDocument, Offer, AvailabilityWindow } from './types'
+import type { UserProfile, SearchResult, Viewing, UserDocument, Offer, AvailabilityWindow, Favorite } from './types'
 import { viewingAgentResponseToBuyerEmail, sellerDisclosureReceivedEmail, sellerDecisionEmail, viewingCancellationToAgentEmail } from './email-templates'
 import { buildListingUrl } from './mls/listing-url'
 import { classifyDocument } from './documents/classifier'
@@ -330,6 +330,57 @@ async function getOffers(userId: string): Promise<APIGatewayProxyResultV2> {
   return json(200, { offers })
 }
 
+async function getFavorites(userId: string): Promise<APIGatewayProxyResultV2> {
+  const result = await dynamo.send(
+    new QueryCommand({
+      TableName: process.env.FAVORITES_TABLE!,
+      KeyConditionExpression: 'userId = :uid',
+      ExpressionAttributeValues: { ':uid': { S: userId } },
+      ScanIndexForward: false,
+    }),
+  )
+  const favorites = (result.Items ?? []).map((item: Record<string, AttributeValue>) => unmarshall(item) as Favorite)
+  return json(200, { favorites })
+}
+
+async function toggleFavorite(userId: string, event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const body = JSON.parse(event.body ?? '{}')
+  const { listingId, listingData, profileId } = body
+  if (!listingId) return json(400, { error: 'Missing listingId' })
+
+  const existing = await dynamo.send(
+    new GetItemCommand({
+      TableName: process.env.FAVORITES_TABLE!,
+      Key: marshall({ userId, listingId }),
+    }),
+  )
+
+  if (existing.Item) {
+    await dynamo.send(
+      new DeleteItemCommand({
+        TableName: process.env.FAVORITES_TABLE!,
+        Key: marshall({ userId, listingId }),
+      }),
+    )
+    return json(200, { favorited: false })
+  }
+
+  const favorite: Favorite = {
+    userId,
+    listingId,
+    profileId: profileId ?? '',
+    listingData,
+    favoritedAt: new Date().toISOString(),
+  }
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.FAVORITES_TABLE!,
+      Item: marshall(favorite, { removeUndefinedValues: true }),
+    }),
+  )
+  return json(200, { favorited: true })
+}
+
 async function findOfferByToken(token: string): Promise<Offer | null> {
   const result = await dynamo.send(
     new QueryCommand({
@@ -642,6 +693,8 @@ export async function handler(
     if (path === '/notifications') return getNotifications(userId)
     if (path === '/viewings/cancel' && event.requestContext.http.method === 'POST') return cancelViewing(userId, event)
     if (path === '/offers' && event.requestContext.http.method === 'GET') return getOffers(userId)
+    if (path === '/favorites' && event.requestContext.http.method === 'GET') return getFavorites(userId)
+    if (path === '/favorites/toggle' && event.requestContext.http.method === 'POST') return toggleFavorite(userId, event)
     if (path === '/profile' && event.requestContext.http.method === 'GET') return getProfile(userId)
     if (path === '/profile' && event.requestContext.http.method === 'PATCH') return patchProfile(userId, event)
     if (path === '/search-results') return getSearchResults(userId)

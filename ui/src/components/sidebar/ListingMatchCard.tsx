@@ -1,6 +1,7 @@
 import { Box, Chip, Typography } from '@mui/material'
 import type { SearchResult } from '@/hooks/useSearchResults'
 import { streetViewUrl } from '@/lib/streetview'
+import FavoriteButton from '@/components/favorites/FavoriteButton'
 
 interface ListingMatchCardProps {
   result: SearchResult
@@ -21,7 +22,7 @@ export default function ListingMatchCard({ result }: ListingMatchCardProps) {
     : null
 
   return (
-    <Box className="ms-7 overflow-hidden rounded-lg border border-grey-100 bg-background">
+    <Box className="ms-7 overflow-hidden rounded-lg border border-grey-100 bg-background relative">
       {imgUrl && (
         <img
           src={imgUrl}
@@ -61,6 +62,13 @@ export default function ListingMatchCard({ result }: ListingMatchCardProps) {
           </a>
         </Box>
       )}
+      </Box>
+      <Box className="absolute bottom-1.5 right-1.5">
+        <FavoriteButton
+          listingId={result.listingId}
+          listingData={result.listingData}
+          profileId={result.profileId}
+        />
       </Box>
     </Box>
   )

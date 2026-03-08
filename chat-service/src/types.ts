@@ -256,6 +256,14 @@ export interface Offer {
   submittedAt?: string
 }
 
+export interface Favorite {
+  userId: string
+  listingId: string
+  profileId: string
+  listingData: Listing
+  favoritedAt: string
+}
+
 // ---------------------------------------------------------------------------
 // Anthropic SDK compatible message types
 export interface TextContentBlock {

@@ -14,6 +14,7 @@ import NiChevronRightSmall from '@/icons/nexture/ni-chevron-right-small'
 import keysImage from '@/assets/keys.png'
 import ProfilePanel from '@/components/sidebar/ProfilePanel'
 import SearchProfileCard from '@/components/sidebar/SearchProfileCard'
+import FavoritesCard from '@/components/sidebar/FavoritesCard'
 import ViewingCard from '@/components/sidebar/ViewingCard'
 import DocumentPanel from '@/components/sidebar/DocumentPanel'
 import OfferCard from '@/components/sidebar/OfferCard'
@@ -22,6 +23,7 @@ import { useSearchResults } from '@/hooks/useSearchResults'
 import { useViewings } from '@/hooks/useViewings'
 import { useDocuments } from '@/hooks/useDocuments'
 import { useOffers } from '@/hooks/useOffers'
+import { useFavoritesContext } from '@/components/favorites/FavoritesContext'
 import { cn } from '@/lib/utils'
 
 function SidebarSection({
@@ -89,6 +91,7 @@ export default function LeftMenu() {
   const { viewings, refetch: refetchViewings } = useViewings()
   const { documents, refetch: refetchDocuments } = useDocuments()
   const { offers, refetch: refetchOffers } = useOffers()
+  const { favorites } = useFavoritesContext()
 
   useEffect(() => {
     registerProfileRefetch(refetchProfile)
@@ -174,6 +177,7 @@ export default function LeftMenu() {
           icon={<NiSearch size="small" />}
           contentClassName="flex flex-col gap-1 px-2 pb-3 pt-0"
         >
+          {favorites.length > 0 && <FavoritesCard />}
           {!profile || profile.searchProfiles.length === 0 ? (
             <Link
               to="/chat?prompt=I'd+like+to+start+a+property+search"

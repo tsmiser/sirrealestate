@@ -5,6 +5,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import LayoutContextProvider from '@/components/layout/layout-context'
 import { SidebarRefreshProvider } from '@/components/layout/sidebar-refresh-context'
 import { FloatingChatProvider } from '@/components/chat/floating-chat-context'
+import { FavoritesProvider } from '@/components/favorites/FavoritesContext'
 import Header from '@/components/layout/containers/header'
 import Main from '@/components/layout/containers/main'
 import ContentWrapper from '@/components/layout/containers/content-wrapper'
@@ -38,7 +39,9 @@ export default function AppLayout() {
   return (
     <LayoutContextProvider>
       <SidebarRefreshProvider>
-        <AppLayoutInner />
+        <FavoritesProvider>
+          <AppLayoutInner />
+        </FavoritesProvider>
       </SidebarRefreshProvider>
     </LayoutContextProvider>
   )
