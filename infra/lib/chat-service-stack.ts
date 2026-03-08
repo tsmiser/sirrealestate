@@ -304,12 +304,14 @@ export class ChatServiceStack extends Stack {
       httpApi: props.httpApi,
       routeKey: apigwv2.HttpRouteKey.with('/favorites', apigwv2.HttpMethod.GET),
       integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
     })
 
     new apigwv2.HttpRoute(this, 'FavoritesToggleRoute', {
       httpApi: props.httpApi,
       routeKey: apigwv2.HttpRouteKey.with('/favorites/toggle', apigwv2.HttpMethod.POST),
       integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
     })
 
     new CfnOutput(this, 'AnthropicModelId', {
