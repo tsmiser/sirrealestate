@@ -124,7 +124,7 @@ export default function ListingsPage() {
       if (applied.priceRange[1] < SLIDER_MAX && l.price > applied.priceRange[1]) return false
       if (applied.minBeds > 0 && l.bedrooms < applied.minBeds) return false
       if (applied.minBaths > 0 && l.bathrooms < applied.minBaths) return false
-      if (applied.propertyTypes.length > 0 && !applied.propertyTypes.includes(l.propertyType ?? '')) return false
+      if (applied.propertyTypes.length > 0 && l.propertyType && !applied.propertyTypes.includes(l.propertyType)) return false
       return true
     })
   }, [results, applied])
