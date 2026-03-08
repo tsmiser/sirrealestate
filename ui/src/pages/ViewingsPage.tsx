@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState } from 'react'
 import {
   Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  Divider, IconButton, Link as MuiLink, Typography,
+  Divider, IconButton, Link as MuiLink, Menu, MenuItem, Typography,
 } from '@mui/material'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -164,6 +164,86 @@ function AvailabilityDialog({ window: w, allWindows, onClose, onSaved }: Availab
 }
 
 // ---------------------------------------------------------------------------
+// Calendar helpers
+// ---------------------------------------------------------------------------
+function fmtIcsDt(d: Date) {
+  return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+}
+
+function buildDescription(viewing: Viewing): string {
+  return [
+    viewing.agentName ? `Agent: ${viewing.agentName}` : '',
+    viewing.agentEmail ? `Email: ${viewing.agentEmail}` : '',
+  ].filter(Boolean).join('\\n')
+}
+
+function generateIcs(viewing: Viewing): string {
+  const start = new Date(viewing.proposedDateTime!)
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+  const desc = buildDescription(viewing)
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SirRealtor//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${viewing.viewingId}@sirrealtor.com`,
+    `DTSTART:${fmtIcsDt(start)}`,
+    `DTEND:${fmtIcsDt(end)}`,
+    `SUMMARY:Property Viewing: ${viewing.listingAddress}`,
+    `LOCATION:${viewing.listingAddress}`,
+    desc ? `DESCRIPTION:${desc}` : '',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n')
+}
+
+function downloadIcs(viewing: Viewing) {
+  const blob = new Blob([generateIcs(viewing)], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `viewing-${viewing.listingAddress.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.ics`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function googleCalendarUrl(viewing: Viewing): string {
+  const start = new Date(viewing.proposedDateTime!)
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Property Viewing: ${viewing.listingAddress}`,
+    dates: `${fmtIcsDt(start)}/${fmtIcsDt(end)}`,
+    location: viewing.listingAddress,
+    details: [
+      viewing.agentName ? `Agent: ${viewing.agentName}` : '',
+      viewing.agentEmail ? `Email: ${viewing.agentEmail}` : '',
+    ].filter(Boolean).join('\n'),
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function outlookCalendarUrl(viewing: Viewing): string {
+  const start = new Date(viewing.proposedDateTime!)
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: `Property Viewing: ${viewing.listingAddress}`,
+    startdt: start.toISOString(),
+    enddt: end.toISOString(),
+    location: viewing.listingAddress,
+    body: [
+      viewing.agentName ? `Agent: ${viewing.agentName}` : '',
+      viewing.agentEmail ? `Email: ${viewing.agentEmail}` : '',
+    ].filter(Boolean).join('\n'),
+  })
+  return `https://outlook.live.com/calendar/0/action/compose?${params.toString()}`
+}
+
+// ---------------------------------------------------------------------------
 // Viewing dialog (active and cancelled)
 // ---------------------------------------------------------------------------
 interface ViewingDialogProps {
@@ -176,7 +256,9 @@ interface ViewingDialogProps {
 function ViewingDialog({ viewing, listingPreference, onClose, onCancelled }: ViewingDialogProps) {
   const [cancelling, setCancelling] = useState(false)
   const [thumbError, setThumbError] = useState(false)
+  const [calMenuAnchor, setCalMenuAnchor] = useState<HTMLElement | null>(null)
   const isCancelled = viewing.status === 'cancelled'
+  const canAddToCalendar = viewing.status === 'confirmed' && !!viewing.proposedDateTime
 
   const listingUrl = buildListingUrl(viewing.listingAddress, listingPreference)
   const thumbUrl = MAPS_KEY
@@ -277,6 +359,47 @@ function ViewingDialog({ viewing, listingPreference, onClose, onCancelled }: Vie
 
       {!isCancelled && (
         <DialogActions>
+          {canAddToCalendar && (
+            <>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={(e) => setCalMenuAnchor(e.currentTarget)}
+              >
+                Add to Calendar
+              </Button>
+              <Menu
+                anchorEl={calMenuAnchor}
+                open={Boolean(calMenuAnchor)}
+                onClose={() => setCalMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              >
+                <MenuItem onClick={() => { downloadIcs(viewing); setCalMenuAnchor(null) }}>
+                  Apple Calendar
+                </MenuItem>
+                <MenuItem
+                  component="a"
+                  href={googleCalendarUrl(viewing)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setCalMenuAnchor(null)}
+                >
+                  Google Calendar
+                </MenuItem>
+                <MenuItem
+                  component="a"
+                  href={outlookCalendarUrl(viewing)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setCalMenuAnchor(null)}
+                >
+                  Outlook
+                </MenuItem>
+              </Menu>
+            </>
+          )}
           <Button
             color="error"
             variant="outlined"
