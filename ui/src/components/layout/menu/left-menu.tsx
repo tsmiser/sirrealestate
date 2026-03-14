@@ -191,6 +191,7 @@ export default function LeftMenu() {
                 key={sp.profileId}
                 profile={sp}
                 results={grouped[sp.profileId] ?? []}
+                onDeleted={refetchProfile}
               />
             ))
           )}

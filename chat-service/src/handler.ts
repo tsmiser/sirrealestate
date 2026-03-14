@@ -21,6 +21,7 @@ import * as GeneratePurchaseAgreement from './tools/generate-purchase-agreement'
 import * as GenerateEarnestMoneyAgreement from './tools/generate-earnest-money-agreement'
 import * as GenerateAgencyDisclosure from './tools/generate-agency-disclosure'
 import * as SubmitOffer from './tools/submit-offer'
+import * as DeleteSearchProfile from './tools/delete-search-profile'
 import * as RequestLocation from './tools/request-location'
 import type { ConversationMessage } from './types'
 
@@ -40,6 +41,8 @@ const SYSTEM_PROMPT =
   'The user\'s email address is already known (provided in the User context below) — never ask for it. ' +
   'When the user shares their name, phone number, buyer status, or pre-approval details, call ' +
   'update_user_details immediately to save that information. ' +
+  'If the user asks to delete or remove a saved search, call delete_search_profile with the profileId. ' +
+  'First confirm which search they mean by showing them the list from get_user_profile if needed. ' +
   'If the user\'s firstName and lastName are not yet set, ask for their name before creating a search profile. ' +
   'Ask about whether they are a first-time home buyer, their current city/state, their desired city/state, ' +
   'and their preferred listing platform (Zillow, Redfin, or Realtor.com) — save all via update_user_details. ' +
@@ -111,6 +114,7 @@ const TOOLS: Anthropic.Tool[] = [
   GenerateEarnestMoneyAgreement.definition,
   GenerateAgencyDisclosure.definition,
   SubmitOffer.definition,
+  DeleteSearchProfile.definition,
   RequestLocation.definition,
 ] as Anthropic.Tool[]
 
@@ -127,6 +131,8 @@ async function executeTool(
       return UpdateUserDetails.execute(userId, input as Parameters<typeof UpdateUserDetails.execute>[1])
     case 'upsert_search_profile':
       return UpsertSearchProfile.execute(userId, input as Parameters<typeof UpsertSearchProfile.execute>[1], userEmail)
+    case 'delete_search_profile':
+      return DeleteSearchProfile.execute(userId, input as Parameters<typeof DeleteSearchProfile.execute>[1])
     case 'get_search_results':
       return GetSearchResults.execute(userId, input as Parameters<typeof GetSearchResults.execute>[1])
     case 'schedule_viewing':

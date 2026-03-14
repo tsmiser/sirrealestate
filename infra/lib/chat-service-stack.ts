@@ -205,6 +205,13 @@ export class ChatServiceStack extends Stack {
       authorizer: cognitoAuthorizer,
     })
 
+    new apigwv2.HttpRoute(this, 'SearchProfileDeleteRoute', {
+      httpApi: props.httpApi,
+      routeKey: apigwv2.HttpRouteKey.with('/search-profiles/{profileId}', apigwv2.HttpMethod.DELETE),
+      integration: dataIntegration,
+      authorizer: cognitoAuthorizer,
+    })
+
     new apigwv2.HttpRoute(this, 'ViewingsRoute', {
       httpApi: props.httpApi,
       routeKey: apigwv2.HttpRouteKey.with('/viewings', apigwv2.HttpMethod.GET),

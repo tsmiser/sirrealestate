@@ -43,6 +43,7 @@ export const api = {
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
 
 export const chat = {
@@ -57,6 +58,10 @@ export const profile = {
 
 export const searchResults = {
   get: () => api.get<{ results: SearchResult[]; grouped: Record<string, SearchResult[]> }>('/search-results'),
+}
+
+export const searchProfiles = {
+  delete: (profileId: string) => api.delete<{ ok: boolean }>(`/search-profiles/${encodeURIComponent(profileId)}`),
 }
 
 export const viewings = {

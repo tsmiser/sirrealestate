@@ -24,6 +24,30 @@ function json(statusCode: number, body: unknown): APIGatewayProxyResultV2 {
   }
 }
 
+async function deleteSearchProfile(userId: string, profileId: string): Promise<APIGatewayProxyResultV2> {
+  const result = await dynamo.send(
+    new GetItemCommand({
+      TableName: process.env.USER_PROFILE_TABLE!,
+      Key: { userId: { S: userId } },
+    }),
+  )
+  if (!result.Item) return json(404, { error: 'Profile not found' })
+
+  const userProfile = unmarshall(result.Item) as UserProfile
+  const before = userProfile.searchProfiles.length
+  userProfile.searchProfiles = userProfile.searchProfiles.filter((p) => p.profileId !== profileId)
+  if (userProfile.searchProfiles.length === before) return json(404, { error: 'Search profile not found' })
+
+  userProfile.updatedAt = new Date().toISOString()
+  await dynamo.send(
+    new PutItemCommand({
+      TableName: process.env.USER_PROFILE_TABLE!,
+      Item: marshall(userProfile, { removeUndefinedValues: true }),
+    }),
+  )
+  return json(200, { ok: true })
+}
+
 async function getProfile(userId: string): Promise<APIGatewayProxyResultV2> {
   const result = await dynamo.send(
     new GetItemCommand({
@@ -697,6 +721,10 @@ export async function handler(
     if (path === '/favorites/toggle' && event.requestContext.http.method === 'POST') return toggleFavorite(userId, event)
     if (path === '/profile' && event.requestContext.http.method === 'GET') return getProfile(userId)
     if (path === '/profile' && event.requestContext.http.method === 'PATCH') return patchProfile(userId, event)
+    if (path.startsWith('/search-profiles/') && event.requestContext.http.method === 'DELETE') {
+      const profileId = path.split('/')[2]
+      return deleteSearchProfile(userId, profileId)
+    }
     if (path === '/search-results') return getSearchResults(userId)
     if (path === '/viewings') return getViewings(userId)
     if (path === '/documents' && event.requestContext.http.method === 'GET') return getDocuments(userId)
