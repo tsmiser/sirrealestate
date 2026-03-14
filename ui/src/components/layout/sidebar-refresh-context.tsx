@@ -1,6 +1,8 @@
 import { createContext, type PropsWithChildren, useContext, useRef, useCallback, useState } from 'react'
 
 type RefreshFn = () => void
+// Register returns an unsubscribe so components can clean up on unmount.
+type RegisterFn = (fn: RefreshFn) => () => void
 
 type SidebarRefreshContextType = {
   invalidateProfile: () => void
@@ -8,11 +10,11 @@ type SidebarRefreshContextType = {
   invalidateDocuments: () => void
   invalidateOffers: () => void
   invalidateViewings: () => void
-  registerProfileRefetch: (fn: RefreshFn) => void
-  registerSearchResultsRefetch: (fn: RefreshFn) => void
-  registerDocumentsRefetch: (fn: RefreshFn) => void
-  registerOffersRefetch: (fn: RefreshFn) => void
-  registerViewingsRefetch: (fn: RefreshFn) => void
+  registerProfileRefetch: RegisterFn
+  registerSearchResultsRefetch: RegisterFn
+  registerDocumentsRefetch: RegisterFn
+  registerOffersRefetch: RegisterFn
+  registerViewingsRefetch: RegisterFn
   newListingsCount: number
   setNewListingsCount: (n: number) => void
 }
@@ -20,24 +22,25 @@ type SidebarRefreshContextType = {
 const SidebarRefreshContext = createContext<SidebarRefreshContextType | null>(null)
 
 export function SidebarRefreshProvider({ children }: PropsWithChildren) {
-  const profileRefetchRef = useRef<RefreshFn | null>(null)
-  const searchResultsRefetchRef = useRef<RefreshFn | null>(null)
-  const documentsRefetchRef = useRef<RefreshFn | null>(null)
-  const offersRefetchRef = useRef<RefreshFn | null>(null)
-  const viewingsRefetchRef = useRef<RefreshFn | null>(null)
+  // Each type holds a Set of listeners so multiple components can register.
+  const profileListeners = useRef<Set<RefreshFn>>(new Set())
+  const searchResultsListeners = useRef<Set<RefreshFn>>(new Set())
+  const documentsListeners = useRef<Set<RefreshFn>>(new Set())
+  const offersListeners = useRef<Set<RefreshFn>>(new Set())
+  const viewingsListeners = useRef<Set<RefreshFn>>(new Set())
   const [newListingsCount, setNewListingsCount] = useState(0)
 
-  const invalidateProfile = useCallback(() => { profileRefetchRef.current?.() }, [])
-  const invalidateSearchResults = useCallback(() => { searchResultsRefetchRef.current?.() }, [])
-  const invalidateDocuments = useCallback(() => { documentsRefetchRef.current?.() }, [])
-  const invalidateOffers = useCallback(() => { offersRefetchRef.current?.() }, [])
-  const invalidateViewings = useCallback(() => { viewingsRefetchRef.current?.() }, [])
+  const invalidateProfile = useCallback(() => { profileListeners.current.forEach(fn => fn()) }, [])
+  const invalidateSearchResults = useCallback(() => { searchResultsListeners.current.forEach(fn => fn()) }, [])
+  const invalidateDocuments = useCallback(() => { documentsListeners.current.forEach(fn => fn()) }, [])
+  const invalidateOffers = useCallback(() => { offersListeners.current.forEach(fn => fn()) }, [])
+  const invalidateViewings = useCallback(() => { viewingsListeners.current.forEach(fn => fn()) }, [])
 
-  const registerProfileRefetch = useCallback((fn: RefreshFn) => { profileRefetchRef.current = fn }, [])
-  const registerSearchResultsRefetch = useCallback((fn: RefreshFn) => { searchResultsRefetchRef.current = fn }, [])
-  const registerDocumentsRefetch = useCallback((fn: RefreshFn) => { documentsRefetchRef.current = fn }, [])
-  const registerOffersRefetch = useCallback((fn: RefreshFn) => { offersRefetchRef.current = fn }, [])
-  const registerViewingsRefetch = useCallback((fn: RefreshFn) => { viewingsRefetchRef.current = fn }, [])
+  const registerProfileRefetch = useCallback<RegisterFn>((fn) => { profileListeners.current.add(fn); return () => profileListeners.current.delete(fn) }, [])
+  const registerSearchResultsRefetch = useCallback<RegisterFn>((fn) => { searchResultsListeners.current.add(fn); return () => searchResultsListeners.current.delete(fn) }, [])
+  const registerDocumentsRefetch = useCallback<RegisterFn>((fn) => { documentsListeners.current.add(fn); return () => documentsListeners.current.delete(fn) }, [])
+  const registerOffersRefetch = useCallback<RegisterFn>((fn) => { offersListeners.current.add(fn); return () => offersListeners.current.delete(fn) }, [])
+  const registerViewingsRefetch = useCallback<RegisterFn>((fn) => { viewingsListeners.current.add(fn); return () => viewingsListeners.current.delete(fn) }, [])
 
   return (
     <SidebarRefreshContext.Provider

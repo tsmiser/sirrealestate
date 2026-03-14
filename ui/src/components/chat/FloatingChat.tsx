@@ -35,7 +35,7 @@ export default function FloatingChat() {
 
   if (pathname === '/chat') return null
   const navigate = useNavigate()
-  const { invalidateProfile, invalidateSearchResults } = useSidebarRefresh()
+  const { invalidateProfile, invalidateSearchResults, invalidateViewings } = useSidebarRefresh()
   const { profile } = useUserProfile()
 
   // Isolated session — never collides with ChatPage
@@ -86,6 +86,7 @@ export default function FloatingChat() {
       if (response.hasToolUse) {
         invalidateProfile()
         invalidateSearchResults()
+        invalidateViewings()
       }
 
       setConversation((prev) => [

@@ -10,6 +10,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { useViewings, type Viewing, type ViewingStatus } from '@/hooks/useViewings'
 import { useUserProfile, type AvailabilityWindow } from '@/hooks/useUserProfile'
 import { profile as profileApi, viewings as viewingsApi } from '@/services/api'
+import { useSidebarRefresh } from '@/components/layout/sidebar-refresh-context'
 import NiClose from '@/icons/nexture/ni-chevron-right-small'
 
 const locales = { 'en-US': enUS }
@@ -469,6 +470,7 @@ function eventStyleGetter(event: ViewingEvent) {
 export default function ViewingsPage() {
   const { viewings, isLoading: viewingsLoading, refetch: refetchViewings } = useViewings()
   const { profile, isLoading: profileLoading, refetch: refetchProfile } = useUserProfile()
+  const { registerProfileRefetch, registerViewingsRefetch } = useSidebarRefresh()
 
   const [selectedEvent, setSelectedEvent] = useState<ViewingEvent | null>(null)
 
@@ -476,6 +478,10 @@ export default function ViewingsPage() {
     refetchViewings()
     refetchProfile()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep calendar in sync when the floating chat agent updates availability or viewings.
+  useEffect(() => registerProfileRefetch(refetchProfile), [registerProfileRefetch, refetchProfile])
+  useEffect(() => registerViewingsRefetch(refetchViewings), [registerViewingsRefetch, refetchViewings])
 
   const availability = profile?.availability ?? []
   const events = useMemo(() => buildEvents(viewings, availability), [viewings, availability])

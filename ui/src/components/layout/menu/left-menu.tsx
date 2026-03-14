@@ -93,25 +93,11 @@ export default function LeftMenu() {
   const { offers, refetch: refetchOffers } = useOffers()
   const { favorites } = useFavoritesContext()
 
-  useEffect(() => {
-    registerProfileRefetch(refetchProfile)
-  }, [registerProfileRefetch, refetchProfile])
-
-  useEffect(() => {
-    registerSearchResultsRefetch(refetchSearchResults)
-  }, [registerSearchResultsRefetch, refetchSearchResults])
-
-  useEffect(() => {
-    registerDocumentsRefetch(refetchDocuments)
-  }, [registerDocumentsRefetch, refetchDocuments])
-
-  useEffect(() => {
-    registerOffersRefetch(refetchOffers)
-  }, [registerOffersRefetch, refetchOffers])
-
-  useEffect(() => {
-    registerViewingsRefetch(refetchViewings)
-  }, [registerViewingsRefetch, refetchViewings])
+  useEffect(() => registerProfileRefetch(refetchProfile), [registerProfileRefetch, refetchProfile])
+  useEffect(() => registerSearchResultsRefetch(refetchSearchResults), [registerSearchResultsRefetch, refetchSearchResults])
+  useEffect(() => registerDocumentsRefetch(refetchDocuments), [registerDocumentsRefetch, refetchDocuments])
+  useEffect(() => registerOffersRefetch(refetchOffers), [registerOffersRefetch, refetchOffers])
+  useEffect(() => registerViewingsRefetch(refetchViewings), [registerViewingsRefetch, refetchViewings])
 
   useEffect(() => {
     setNewListingsCount(results.filter((r) => !r.notified).length)
