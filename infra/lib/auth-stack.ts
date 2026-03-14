@@ -1,7 +1,6 @@
-import { Stack, RemovalPolicy, CfnOutput, type StackProps } from 'aws-cdk-lib'
+import { Stack, RemovalPolicy, CfnOutput, SecretValue, type StackProps } from 'aws-cdk-lib'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager'
 import type { Construct } from 'constructs'
 
 interface AuthStackProps extends StackProps {
@@ -121,9 +120,10 @@ export class AuthStack extends Stack {
     const googleProvider = new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleProvider', {
       userPool: this.userPool,
       clientId: googleClientId,
-      // SSM SecureString is not supported by CloudFormation for Cognito identity providers.
-      // Secrets Manager dynamic references are supported.
-      clientSecretValue: secretsmanager.Secret.fromSecretNameV2(this, 'GoogleClientSecret', 'sirrealtor/google-client-secret').secretValue,
+      // fromSecretNameV2 generates an ARN-based reference that omits the random suffix,
+      // causing ResourceNotFoundException. Use SecretValue.secretsManager() directly for
+      // a name-based dynamic reference: {{resolve:secretsmanager:sirrealtor/google-client-secret}}
+      clientSecretValue: SecretValue.secretsManager('sirrealtor/google-client-secret'),
       scopes: ['openid', 'email', 'profile'],
       attributeMapping: {
         email: cognito.ProviderAttribute.GOOGLE_EMAIL,
