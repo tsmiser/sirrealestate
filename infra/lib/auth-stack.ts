@@ -1,4 +1,4 @@
-import { Stack, RemovalPolicy, CfnOutput, SecretValue, type StackProps } from 'aws-cdk-lib'
+import { Stack, RemovalPolicy, CfnOutput, type StackProps } from 'aws-cdk-lib'
 import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as ssm from 'aws-cdk-lib/aws-ssm'
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager'
