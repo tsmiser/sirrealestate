@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { Button } from '@mui/material'
 import { signInWithRedirect, signOut } from 'aws-amplify/auth'
 
@@ -14,8 +13,6 @@ const GoogleLogo = () => (
 )
 
 export default function GoogleSignInButton({ label }: { label: string }) {
-  const navigate = useNavigate()
-
   const handleClick = async () => {
     // Clear any stale local Amplify state (leftover tokens, PKCE state) before starting
     // a new OAuth flow. This prevents 400 errors from cognito-idp when cached tokens
